@@ -152,7 +152,7 @@ class _HomeSectionState extends State<HomeSection>
                       child: _InteractiveQuote(
                         text: PortfolioData.quote,
                         style: AppTextStyles.quote(context),
-                        hoverScale: 1.25,
+                        hoverScale: 1.32,
                       ),
                     ),
                   ],
@@ -486,7 +486,11 @@ class _InteractiveQuoteState extends State<_InteractiveQuote> {
                         curve: Curves.easeOut,
                         child: Text(
                           characters[i],
-                          style: widget.style,
+                          style: _hoveredIndex == i
+                              ? widget.style.copyWith(
+                                  color: AppColors.primaryLight,
+                                )
+                              : widget.style,
                         ),
                       ),
                     ),
