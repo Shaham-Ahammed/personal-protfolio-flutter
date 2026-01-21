@@ -604,9 +604,12 @@ class _FlutterBirdState extends State<_FlutterBird>
               child: child,
             );
           },
-          child: Transform.scale(
-            scale: 4,
-            child: Image.asset(AppImages.flutterBird, width: 48, height: 48),
+          child: MouseRegion(
+            cursor: SystemMouseCursors.grab,
+            child: Transform.scale(
+              scale: 4,
+              child: Image.asset(AppImages.flutterBird, width: 48, height: 48),
+            ),
           ),
         ),
       ),

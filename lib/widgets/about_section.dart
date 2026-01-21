@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:personal_portfoliio/constants/images.dart';
 
 import '../constants/colors.dart';
@@ -19,6 +20,7 @@ class _AboutSectionState extends State<AboutSection>
   late final AnimationController _flareController;
   late final List<_FlareParticle> _particles;
   double _lastT = 0;
+  bool _isVisible = true;
 
   @override
   void initState() {
@@ -42,44 +44,56 @@ class _AboutSectionState extends State<AboutSection>
     final size = MediaQuery.of(context).size;
     final isMobile = size.width < 768;
 
-    return Container(
-      width: double.infinity,
-      constraints: BoxConstraints(minHeight: size.height),
-      color: AppColors.backgroundLight,
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 20 : 60,
-        vertical: isMobile ? 60 : 100,
-      ),
-      child: AnimatedBuilder(
-        animation: _flareController,
-        builder: (context, _) {
-          final flareValue = _flareController.value;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('ABOUT', style: AppTextStyles.sectionTitle(context)),
-              const SizedBox(height: 16),
-              Text('Who I Am', style: AppTextStyles.heading2(context)),
-              const SizedBox(height: 40),
-              isMobile
-                  ? _buildContentBox(context, flareProgress: flareValue)
-                  : Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: _buildContentBox(
-                            context,
-                            flareProgress: flareValue,
+    return VisibilityDetector(
+      key: const Key('about-section-visibility'),
+      onVisibilityChanged: (info) {
+        final nowVisible = info.visibleFraction > 0;
+        if (_isVisible != nowVisible) {
+          setState(() => _isVisible = nowVisible);
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        constraints: BoxConstraints(minHeight: size.height),
+        color: AppColors.backgroundLight,
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 20 : 60,
+          vertical: isMobile ? 60 : 100,
+        ),
+        child: AnimatedBuilder(
+          animation: _flareController,
+          builder: (context, _) {
+            final flareValue = _flareController.value;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('ABOUT', style: AppTextStyles.sectionTitle(context)),
+                const SizedBox(height: 16),
+                Text('Who I Am', style: AppTextStyles.heading2(context)),
+                const SizedBox(height: 40),
+                isMobile
+                    ? _buildContentBox(
+                        context,
+                        flareProgress: flareValue,
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: _buildContentBox(
+                              context,
+                              flareProgress: flareValue,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 60),
-                        Expanded(flex: 1, child: _buildGifContainer(context)),
-                      ],
-                    ),
-            ],
-          );
-        },
+                          const SizedBox(width: 60),
+                          Expanded(flex: 1, child: _buildGifContainer(context)),
+                        ],
+                      ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -187,7 +201,10 @@ class _AboutSectionState extends State<AboutSection>
               runSpacing: 12,
               children: [
                 for (final skillMap in PortfolioData.skills)
-                  _SkillBullet(name: skillMap['name'] as String),
+                  _SkillBullet(
+                    name: skillMap['name'] as String,
+                    isSectionVisible: _isVisible,
+                  ),
               ],
             ),
           ],
@@ -276,9 +293,13 @@ class _AboutSectionState extends State<AboutSection>
 }
 
 class _SkillBullet extends StatefulWidget {
-  const _SkillBullet({required this.name});
+  const _SkillBullet({
+    required this.name,
+    required this.isSectionVisible,
+  });
 
   final String name;
+  final bool isSectionVisible;
 
   @override
   State<_SkillBullet> createState() => _SkillBulletState();
@@ -310,6 +331,14 @@ class _SkillBulletState extends State<_SkillBullet>
   }
 
   @override
+  void didUpdateWidget(covariant _SkillBullet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isSectionVisible && !widget.isSectionVisible) {
+      _resetToRest();
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -321,6 +350,17 @@ class _SkillBulletState extends State<_SkillBullet>
     _direction = _rng.nextBool() ? 1 : -1;
     _initialAngle = _restingAngle;
     _controller.forward(from: 0);
+  }
+
+  void _resetToRest() {
+    _controller.stop();
+    _controller.reset();
+    setState(() {
+      _restingAngle = 0;
+      _initialAngle = 0;
+      _currentAngle = 0;
+      _direction = 1;
+    });
   }
 
   @override
