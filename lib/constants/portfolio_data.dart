@@ -8,9 +8,9 @@ class PortfolioData {
   static const String quote =
       'Code is my canvas, and the screen is my art gallery.';
   static const String bio = '''
-I'm a Flutter developer with 2+ years of experience building mobile apps and websites. I currently work at Applab, Qatar, where I enjoy turning ideas into real, usable products and focusing on smooth user experiences.
+I'm a Flutter developer with 2+ years of experience building mobile apps and websites. I currently work at Applab, Qatar, where I enjoy turning ideas into real, usable products with a strong focus on smooth user experiences.
 
-I love problem solving and figuring out clean, practical solutions to everyday challenges. I'm always curious, always learning, and enjoy building things that actually make a difference.
+I love problem solving and breaking down complex challenges into simple, practical solutions. I enjoy working both with a team and independently—whether it's collaborating on ideas or quietly wrestling with bugs until they finally give up. Always curious and always learning, I enjoy experimenting with new ideas and building things that genuinely make a difference.
 ''';
 
   static const String aboutGifPath =
@@ -28,14 +28,19 @@ I love problem solving and figuring out clean, practical solutions to everyday c
 
   // Skills
   static const List<Map<String, dynamic>> skills = [
-    {'name': 'Flutter', 'level': 90, 'icon': '💙'},
-    {'name': 'Dart', 'level': 85, 'icon': '💙'},
-    {'name': 'JavaScript', 'level': 80, 'icon': '🟨'},
-    {'name': 'React', 'level': 75, 'icon': '⚛️'},
-    {'name': 'Node.js', 'level': 70, 'icon': '🟢'},
-    {'name': 'Python', 'level': 75, 'icon': '🐍'},
-    {'name': 'UI/UX Design', 'level': 80, 'icon': '🎨'},
-    {'name': 'Git', 'level': 85, 'icon': '📦'},
+    {'name': 'Flutter'},
+    {'name': 'Dart'},
+    {'name': 'Firebase'},
+     {'name': 'Google Services'},
+    {'name': 'Hive'},
+    {'name': 'REST API'},
+    {'name': 'Figma'},
+    {'name': 'Git'},
+    {'name': 'Bloc'},
+    {'name': 'GetX'},
+    {'name': 'Provider'},
+    {'name': 'Clean Architecture'},
+   
   ];
 
   // Projects

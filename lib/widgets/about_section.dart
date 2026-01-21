@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:personal_portfoliio/constants/images.dart';
 
@@ -5,8 +7,35 @@ import '../constants/colors.dart';
 import '../constants/text_styles.dart';
 import '../constants/portfolio_data.dart';
 
-class AboutSection extends StatelessWidget {
+class AboutSection extends StatefulWidget {
   const AboutSection({super.key});
+
+  @override
+  State<AboutSection> createState() => _AboutSectionState();
+}
+
+class _AboutSectionState extends State<AboutSection>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _flareController;
+  late final List<_FlareParticle> _particles;
+  double _lastT = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _flareController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 12),
+    )..addListener(_tick);
+    _resetParticles();
+    _flareController.repeat();
+  }
+
+  @override
+  void dispose() {
+    _flareController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,69 +50,144 @@ class AboutSection extends StatelessWidget {
         horizontal: isMobile ? 20 : 60,
         vertical: isMobile ? 60 : 100,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('ABOUT', style: AppTextStyles.sectionTitle(context)),
-          const SizedBox(height: 16),
-          Text('Who I Am', style: AppTextStyles.heading2(context)),
-          const SizedBox(height: 40),
-          isMobile
-              ? _buildContentBox(context)
-              : Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 2, child: _buildContentBox(context)),
-                    const SizedBox(width: 60),
-                    Expanded(flex: 1, child: _buildGifContainer(context)),
-                  ],
-                ),
-        ],
+      child: AnimatedBuilder(
+        animation: _flareController,
+        builder: (context, _) {
+          final flareValue = _flareController.value;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('ABOUT', style: AppTextStyles.sectionTitle(context)),
+              const SizedBox(height: 16),
+              Text('Who I Am', style: AppTextStyles.heading2(context)),
+              const SizedBox(height: 40),
+              isMobile
+                  ? _buildContentBox(context, flareProgress: flareValue)
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: _buildContentBox(
+                            context,
+                            flareProgress: flareValue,
+                          ),
+                        ),
+                        const SizedBox(width: 60),
+                        Expanded(flex: 1, child: _buildGifContainer(context)),
+                      ],
+                    ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildContentBox(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
+  void _tick() {
+    final t = _flareController.lastElapsedDuration?.inMilliseconds.toDouble() ??
+        0.0;
+    final dtMs = (t - _lastT).clamp(0, 32); // clamp to avoid big jumps
+    _lastT = t;
+    final dt = dtMs / 1000.0;
+
+    // Simple physics in normalized space (0..1)
+    for (int i = 0; i < _particles.length; i++) {
+      final p = _particles[i];
+      p.position += p.velocity * dt;
+
+      // Bounce on bounds
+      if (p.position.dx < 0 || p.position.dx > 1) {
+        p.velocity = Offset(-p.velocity.dx, p.velocity.dy);
+        p.position = Offset(p.position.dx.clamp(0, 1), p.position.dy);
+      }
+      if (p.position.dy < 0 || p.position.dy > 1) {
+        p.velocity = Offset(p.velocity.dx, -p.velocity.dy);
+        p.position = Offset(p.position.dx, p.position.dy.clamp(0, 1));
+      }
+
+      // Collisions with other particles (basic elastic swap)
+      for (int j = i + 1; j < _particles.length; j++) {
+        final q = _particles[j];
+        final dist2 = (p.position - q.position).distanceSquared;
+        const minDist = 0.08;
+        if (dist2 < minDist * minDist) {
+          final tmp = p.velocity;
+          p.velocity = q.velocity;
+          q.velocity = tmp;
+          // push apart a bit
+          final diff = p.position - q.position;
+          final len = diff.distance;
+          final dir = len == 0 ? const Offset(1, 0) : diff / len;
+          p.position += dir * 0.01;
+          q.position -= dir * 0.01;
+        }
+      }
+    }
+    if (mounted) setState(() {});
+  }
+
+  void _resetParticles() {
+    final rng = math.Random();
+    _particles = List.generate(3, (_) {
+      final speed = 0.12 + rng.nextDouble() * 0.12; // normalized units per sec
+      final angle = rng.nextDouble() * 2 * math.pi;
+      return _FlareParticle(
+        position: Offset(rng.nextDouble(), rng.nextDouble()),
+        velocity: Offset(math.cos(angle), math.sin(angle)) * speed,
+      );
+    });
+  }
+
+  Widget _buildContentBox(BuildContext context,
+      {required double flareProgress}) {
+    return CustomPaint(
+      foregroundPainter: _FlarePainter(
+        progress: flareProgress,
+        particles: _particles,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            PortfolioData.bio,
-            style: AppTextStyles.bodyLarge(
-              context,
-            ).copyWith(color: AppColors.textSecondary, height: 1.7),
-          ),
-          const SizedBox(height: 40),
-          Text(
-            'Skills & Tools',
-            style: AppTextStyles.heading4(
-              context,
-            ).copyWith(color: AppColors.primaryLight),
-          ),
-          const SizedBox(height: 20),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              for (final skillMap in PortfolioData.skills)
-                _SkillBullet(name: skillMap['name'] as String),
-            ],
-          ),
-        ],
+      child: Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border:
+              Border.all(color: AppColors.primary.withOpacity(0.2), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              PortfolioData.bio,
+              style: AppTextStyles.bodyLarge(
+                context,
+              ).copyWith(color: AppColors.textSecondary, height: 1.7),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Skills & Tools',
+              style: AppTextStyles.heading4(
+                context,
+              ).copyWith(color: AppColors.primaryLight),
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                for (final skillMap in PortfolioData.skills)
+                  _SkillBullet(name: skillMap['name'] as String),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -207,4 +311,52 @@ class _SkillBullet extends StatelessWidget {
       ),
     );
   }
+}
+
+class _FlarePainter extends CustomPainter {
+  _FlarePainter({required this.progress, required this.particles});
+
+  final double progress;
+  final List<_FlareParticle> particles;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = progress * 2 * math.pi;
+
+    for (int i = 0; i < particles.length; i++) {
+      final part = particles[i];
+      final pos = Offset(
+        size.width * part.position.dx,
+        size.height * part.position.dy,
+      );
+
+      final baseSize = 110.0 + 40.0 * math.sin(p + i);
+      final opacity = 0.2 + 0.08 * math.cos(p + i * 1.3);
+
+      final paint = Paint()
+        ..shader = RadialGradient(
+          colors: [
+            AppColors.primaryLight.withOpacity(opacity),
+            AppColors.primaryLight.withOpacity(0),
+          ],
+        ).createShader(Rect.fromCircle(center: pos, radius: baseSize * 1.2))
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, baseSize * 0.5)
+        ..blendMode = BlendMode.screen;
+
+      canvas.drawCircle(pos, baseSize, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _FlarePainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.particles != particles;
+  }
+}
+
+class _FlareParticle {
+  _FlareParticle({required this.position, required this.velocity});
+
+  Offset position;
+  Offset velocity;
 }
