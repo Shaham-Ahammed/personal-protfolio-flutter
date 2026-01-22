@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../constants/colors.dart';
 import '../constants/text_styles.dart';
 import '../constants/portfolio_data.dart';
@@ -458,67 +459,107 @@ class _MainProjectCardState extends State<_MainProjectCard>
   }
 
   Widget _buildImageSection() {
-    return ClipRRect(
-      borderRadius: widget.isMobile
-          ? const BorderRadius.vertical(top: Radius.circular(28))
-          : const BorderRadius.horizontal(left: Radius.circular(28)),
-      child: Container(
-        height: widget.isMobile ? 200 : double.infinity,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.primary.withValues(alpha: 0.2),
-              AppColors.surfaceLight,
-            ],
+    return GestureDetector(
+      onTap: () {
+        if (widget.project.galleryImages != null &&
+            widget.project.galleryImages!.isNotEmpty) {
+          _showGalleryPopup(context);
+        }
+      },
+      child: ClipRRect(
+        borderRadius: widget.isMobile
+            ? const BorderRadius.vertical(top: Radius.circular(28))
+            : const BorderRadius.horizontal(left: Radius.circular(28)),
+        child: Container(
+          height: widget.isMobile ? 200 : double.infinity,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.primary.withValues(alpha: 0.2),
+                AppColors.surfaceLight,
+              ],
+            ),
           ),
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.network(
-              widget.project.imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: AppColors.surfaceLight,
-                  child: const Icon(
-                    Icons.image,
-                    size: 60,
-                    color: AppColors.textTertiary,
-                  ),
-                );
-              },
-            ),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    AppColors.background.withValues(alpha: 0.6),
-                  ],
-                ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.network(
+                widget.project.imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: AppColors.surfaceLight,
+                    child: const Icon(
+                      Icons.image,
+                      size: 60,
+                      color: AppColors.textTertiary,
+                    ),
+                  );
+                },
               ),
-            ),
-            if (_isHovered && widget.index == widget.currentIndex)
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                     colors: [
-                      AppColors.primary.withValues(alpha: 0.1),
                       Colors.transparent,
+                      AppColors.background.withValues(alpha: 0.6),
                     ],
                   ),
                 ),
               ),
-          ],
+              if (_isHovered && widget.index == widget.currentIndex)
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        AppColors.primary.withValues(alpha: 0.1),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              if (widget.project.galleryImages != null &&
+                  widget.project.galleryImages!.isNotEmpty)
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.background.withValues(alpha: 0.8),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.collections,
+                      color: AppColors.primaryLight,
+                      size: 20,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  void _showGalleryPopup(BuildContext context) {
+    final random = DateTime.now().millisecondsSinceEpoch % 2;
+    final isFromTopLeft = random == 0;
+    
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.8),
+      builder: (context) => _ProjectGalleryPopup(
+        project: widget.project,
+        isFromTopLeft: isFromTopLeft,
       ),
     );
   }
@@ -1100,6 +1141,201 @@ class _ActionButtonState extends State<_ActionButton>
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ProjectGalleryPopup extends StatefulWidget {
+  final Project project;
+  final bool isFromTopLeft;
+
+  const _ProjectGalleryPopup({
+    required this.project,
+    required this.isFromTopLeft,
+  });
+
+  @override
+  State<_ProjectGalleryPopup> createState() => _ProjectGalleryPopupState();
+}
+
+class _ProjectGalleryPopupState extends State<_ProjectGalleryPopup>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _opacityAnimation;
+  late int _crossAxisCount;
+  late double _spacing;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    // Random grid dimensions - more columns for smaller images
+    final random = DateTime.now().millisecondsSinceEpoch;
+    _crossAxisCount = [3, 4][random % 2]; // 3 or 4 columns for smaller images
+    _spacing = 10.0;
+
+    // Slide animation from top-left or top-right
+    final startOffset = widget.isFromTopLeft
+        ? const Offset(-1.0, -1.0)
+        : const Offset(1.0, -1.0);
+
+    _slideAnimation = Tween<Offset>(
+      begin: startOffset,
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    ));
+
+    _scaleAnimation = Tween<double>(
+      begin: 0.3,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    ));
+
+    _opacityAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    ));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _closePopup() {
+    _controller.reverse().then((_) {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final images = widget.project.galleryImages ?? [];
+    if (images.isEmpty) return const SizedBox.shrink();
+
+    return FadeTransition(
+      opacity: _opacityAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: ScaleTransition(
+          scale: _scaleAnimation,
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(20),
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.64,
+                maxHeight: MediaQuery.of(context).size.height * 0.64,
+              ),
+              width: MediaQuery.of(context).size.width * 0.64,
+              height: MediaQuery.of(context).size.height * 0.64,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.project.title,
+                            style: AppTextStyles.heading3(context),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: _closePopup,
+                          icon: const Icon(
+                            Icons.close,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Gallery Grid
+                  Flexible(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: _buildGrid(images),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGrid(List<String> images) {
+    // Pinterest-style masonry layout with varying aspect ratios
+    return MasonryGridView.count(
+      crossAxisCount: _crossAxisCount,
+      mainAxisSpacing: _spacing,
+      crossAxisSpacing: _spacing,
+      itemCount: images.length,
+      itemBuilder: (context, index) {
+        // Random aspect ratios for Pinterest-style layout
+        final random = DateTime.now().millisecondsSinceEpoch + index;
+        final aspectRatios = [0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6];
+        final aspectRatio = aspectRatios[random % aspectRatios.length];
+        
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: AspectRatio(
+            aspectRatio: aspectRatio,
+            child: Image.network(
+              images[index],
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: AppColors.surfaceLight,
+                  child: const Icon(
+                    Icons.broken_image,
+                    color: AppColors.textTertiary,
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }

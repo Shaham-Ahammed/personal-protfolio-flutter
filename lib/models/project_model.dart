@@ -5,6 +5,7 @@ class Project {
   final String description;
   final List<String> technologies;
   final String imageUrl;
+  final List<String>? galleryImages;
   final String? githubUrl;
   final String? iosUrl;
   final String? androidUrl;
@@ -16,6 +17,7 @@ class Project {
     required this.description,
     required this.technologies,
     required this.imageUrl,
+    this.galleryImages,
     this.githubUrl,
     this.iosUrl,
     this.androidUrl,
@@ -29,6 +31,9 @@ class Project {
       description: map['description'] as String,
       technologies: List<String>.from(map['technologies'] as List),
       imageUrl: map['imageUrl'] as String,
+      galleryImages: map['galleryImages'] != null
+          ? List<String>.from(map['galleryImages'] as List)
+          : null,
       githubUrl: map['githubUrl'] as String?,
       iosUrl: map['iosUrl'] as String?,
       androidUrl: map['androidUrl'] as String?,

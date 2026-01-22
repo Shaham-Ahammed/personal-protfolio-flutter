@@ -59,6 +59,14 @@ I love problem solving and breaking down complex challenges into simple, practic
         'Theme Management',
       ],
       'imageUrl': 'https://via.placeholder.com/400x250',
+      'galleryImages': [
+        'https://via.placeholder.com/800x600/6366F1/FFFFFF?text=Kawader+Screenshot+1',
+        'https://via.placeholder.com/800x600/8B5CF6/FFFFFF?text=Kawader+Screenshot+2',
+        'https://via.placeholder.com/800x600/4F46E5/FFFFFF?text=Kawader+Screenshot+3',
+        'https://via.placeholder.com/800x600/818CF8/FFFFFF?text=Kawader+Screenshot+4',
+        'https://via.placeholder.com/800x600/6366F1/FFFFFF?text=Kawader+Screenshot+5',
+        'https://via.placeholder.com/800x600/8B5CF6/FFFFFF?text=Kawader+Screenshot+6',
+      ],
       'webUrl': 'https://www.kawader.gov.qa/',
       'iosUrl': 'https://apps.apple.com/qa/app/kawader-qatar/id6755183682',
       'androidUrl':
@@ -72,6 +80,12 @@ I love problem solving and breaking down complex challenges into simple, practic
           'Collaborative task management platform with real-time updates and team collaboration features.',
       'technologies': ['React', 'Node.js', 'MongoDB'],
       'imageUrl': 'https://via.placeholder.com/400x250',
+      'galleryImages': [
+        'https://via.placeholder.com/800x600/10B981/FFFFFF?text=Task+Management+1',
+        'https://via.placeholder.com/800x600/F59E0B/FFFFFF?text=Task+Management+2',
+        'https://via.placeholder.com/800x600/EF4444/FFFFFF?text=Task+Management+3',
+        'https://via.placeholder.com/800x600/10B981/FFFFFF?text=Task+Management+4',
+      ],
       'githubUrl': 'https://github.com/yourusername/project2',
 
       'type': 'main',
@@ -82,6 +96,13 @@ I love problem solving and breaking down complex challenges into simple, practic
           'An AI-assisted trip planning tool with itinerary drafts, budget tracking, and live recommendations.',
       'technologies': ['Flutter', 'Firebase', 'OpenAI API'],
       'imageUrl': 'https://via.placeholder.com/400x250',
+      'galleryImages': [
+        'https://via.placeholder.com/800x600/6366F1/FFFFFF?text=AI+Travel+Planner+1',
+        'https://via.placeholder.com/800x600/8B5CF6/FFFFFF?text=AI+Travel+Planner+2',
+        'https://via.placeholder.com/800x600/4F46E5/FFFFFF?text=AI+Travel+Planner+3',
+        'https://via.placeholder.com/800x600/818CF8/FFFFFF?text=AI+Travel+Planner+4',
+        'https://via.placeholder.com/800x600/6366F1/FFFFFF?text=AI+Travel+Planner+5',
+      ],
       'githubUrl': 'https://github.com/yourusername/ai-travel-planner',
 
       'type': 'main',
@@ -93,6 +114,11 @@ I love problem solving and breaking down complex challenges into simple, practic
           'Beautiful weather application with location-based forecasts and detailed weather analytics.',
       'technologies': ['Flutter', 'REST API', 'Location Services'],
       'imageUrl': 'https://via.placeholder.com/400x250',
+      'galleryImages': [
+        'https://via.placeholder.com/800x600/0EA5E9/FFFFFF?text=Weather+App+1',
+        'https://via.placeholder.com/800x600/06B6D4/FFFFFF?text=Weather+App+2',
+        'https://via.placeholder.com/800x600/0891B2/FFFFFF?text=Weather+App+3',
+      ],
       'githubUrl': 'https://github.com/yourusername/project3',
       'type': 'mini',
     },
