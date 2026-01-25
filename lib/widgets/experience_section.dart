@@ -98,9 +98,11 @@ class _ExperienceCard extends StatefulWidget {
 }
 
 class _ExperienceCardState extends State<_ExperienceCard>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _animationController;
+  late AnimationController _stackingController;
   late Animation<double> _rotationAnimation;
+  late Animation<double> _stackingAnimation;
   final GlobalKey _cardKey = GlobalKey();
   bool _cardAnimated = false;
 
@@ -111,6 +113,12 @@ class _ExperienceCardState extends State<_ExperienceCard>
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200), // Slow animation
+    );
+
+    // Stacking animation controller - starts after initial animation
+    _stackingController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600), // Stacking animation duration
     );
 
     // Animation sequence: fall from 90° to 0°, then bounce
@@ -135,8 +143,36 @@ class _ExperienceCardState extends State<_ExperienceCard>
       ),
     ]).animate(_animationController);
 
+    // Stacking animation: slight rotation to create stacking effect
+    // Only for non-last cards, rotates 3-5 degrees based on index
+    if (!widget.isLast) {
+      final stackingAngle = 3.0 + (widget.index * 0.5); // Slight increase per card
+      _stackingAnimation = Tween<double>(
+        begin: 0.0,
+        end: stackingAngle,
+      ).animate(CurvedAnimation(
+        parent: _stackingController,
+        curve: Curves.easeOut,
+      ));
+    } else {
+      // Last card: no stacking animation
+      _stackingAnimation = Tween<double>(begin: 0.0, end: 0.0).animate(_stackingController);
+    }
+
     // Always start with controller at 0 (rotated 90 degrees)
     _animationController.value = 0.0;
+    
+    // Listen to initial animation completion to start stacking
+    _animationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed && !widget.isLast) {
+        // Start stacking animation after initial animation completes
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (mounted) {
+            _stackingController.forward();
+          }
+        });
+      }
+    });
 
     // Start checking visibility after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -151,6 +187,7 @@ class _ExperienceCardState extends State<_ExperienceCard>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _animationController.dispose();
+    _stackingController.dispose();
     super.dispose();
   }
 
@@ -218,6 +255,7 @@ class _ExperienceCardState extends State<_ExperienceCard>
           });
           // Reset to initial state
           _animationController.reset();
+          _stackingController.reset();
         }
       }
     } catch (e) {
@@ -416,10 +454,15 @@ class _ExperienceCardState extends State<_ExperienceCard>
     );
     
     return AnimatedBuilder(
-      animation: _rotationAnimation,
+      animation: Listenable.merge([_rotationAnimation, _stackingAnimation]),
       builder: (context, child) {
         // Convert degrees to radians for rotation
         final rotationX = _rotationAnimation.value * (3.14159 / 180);
+        final stackingZ = _stackingAnimation.value * (3.14159 / 180);
+        
+        // Pivot point: left edge (hinge) for left cards, right edge (hinge) for right cards
+        // This keeps the hinge fixed while the opposite end moves down
+        final pivotAlignment = isLeftAligned ? Alignment.centerLeft : Alignment.centerRight;
         
         return Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -427,23 +470,37 @@ class _ExperienceCardState extends State<_ExperienceCard>
           children: isLeftAligned
               ? [
                   bulletWidget,
+                  // First apply initial rotation around center
                   Transform(
                     alignment: Alignment.center,
                     transform: Matrix4.identity()
-                      ..setEntry(3, 2, 0.001) // Perspective
+                      ..setEntry(3, 2, 0.001)
                       ..rotateX(rotationX),
-                    child: cardWidget,
+                    child: Transform(
+                      alignment: pivotAlignment, // Pivot at left edge (hinge) - this stays fixed
+                      transform: Matrix4.identity()
+                        ..setEntry(3, 2, 0.001)
+                        ..rotateZ(stackingZ * 1.15), // Slightly more: right end comes down a bit more
+                      child: cardWidget,
+                    ),
                   ),
                   const Spacer(), // Push to left side
                 ]
               : [
                   const Spacer(), // Push to right side
+                  // First apply initial rotation around center
                   Transform(
                     alignment: Alignment.center,
                     transform: Matrix4.identity()
-                      ..setEntry(3, 2, 0.001) // Perspective
+                      ..setEntry(3, 2, 0.001)
                       ..rotateX(rotationX),
-                    child: cardWidget,
+                    child: Transform(
+                      alignment: pivotAlignment, // Pivot at right edge (hinge) - this stays fixed
+                      transform: Matrix4.identity()
+                        ..setEntry(3, 2, 0.001)
+                        ..rotateZ(-stackingZ * 0.6), // Increased: left end comes down more
+                      child: cardWidget,
+                    ),
                   ),
                   bulletWidget,
                 ],
