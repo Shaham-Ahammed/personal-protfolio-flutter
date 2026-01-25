@@ -1128,11 +1128,14 @@ class _MiniProjectCard extends StatefulWidget {
 }
 
 class _MiniProjectCardState extends State<_MiniProjectCard>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   bool _isHovered = false;
+  bool _imageLoadedSuccessfully = false;
   late AnimationController _hoverController;
+  late AnimationController _imageScrollController;
   late Animation<double> _projectionAnimation;
   late Animation<double> _glowAnimation;
+  late Animation<double> _imageScrollAnimation;
   Offset _mousePosition = Offset.zero;
 
   @override
@@ -1148,15 +1151,33 @@ class _MiniProjectCardState extends State<_MiniProjectCard>
     _glowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _hoverController, curve: Curves.easeOut),
     );
+    
+    // Image scroll animation controller - loops back and forth
+    _imageScrollController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3), // 3 seconds for full up-down cycle
+    );
+    // Animation that goes from 0 to 1 (up) and back to 0 (down) in a loop
+    _imageScrollAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _imageScrollController,
+        curve: Curves.easeInOut,
+      ),
+    );
+    
     // Initialize mouse position to center
     final cardWidth = widget.isMobile ? 300.0 : 340.0;
     final cardHeight = widget.isMobile ? 360.0 : 400.0;
     _mousePosition = Offset(cardWidth / 2, cardHeight / 2);
+    
+    // Initialize image loaded state - will be set to true when image loads successfully
+    _imageLoadedSuccessfully = false;
   }
 
   @override
   void dispose() {
     _hoverController.dispose();
+    _imageScrollController.dispose();
     super.dispose();
   }
 
@@ -1172,8 +1193,16 @@ class _MiniProjectCardState extends State<_MiniProjectCard>
     });
     if (hover) {
       _hoverController.forward();
+      // Start image scroll animation only if image URL exists and image loaded successfully
+      final hasValidImageUrl = widget.project.imageUrl.isNotEmpty;
+      if (hasValidImageUrl && _imageLoadedSuccessfully) {
+        _imageScrollController.repeat(reverse: true);
+      }
     } else {
       _hoverController.reverse();
+      // Stop and reset image scroll animation
+      _imageScrollController.stop();
+      _imageScrollController.reset();
     }
   }
 
@@ -1291,19 +1320,68 @@ class _MiniProjectCardState extends State<_MiniProjectCard>
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    // Main image
-                    Image.network(
-                      
-                      widget.project.imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: AppColors.surfaceLight,
-                          alignment: const Alignment(0, -0.5), // Position more upwards
-                          child: const Icon(
-                            Icons.image,
-                            size: 40,
-                            color: AppColors.textTertiary,
+                    // Main image with scroll animation on hover
+                    AnimatedBuilder(
+                      animation: _imageScrollController,
+                      builder: (context, child) {
+                        // Calculate scroll offset: moves from 0 (bottom) to -scrollAmount (top)
+                        // Using a percentage of the card height for smooth scrolling
+                        final cardHeight = widget.isMobile ? 360.0 : 400.0;
+                        final scrollAmount = cardHeight * 0.3; // Scroll 30% of card height
+                        
+                        // Only apply scroll if image loaded successfully
+                        final shouldScroll = _imageLoadedSuccessfully && 
+                            widget.project.imageUrl.isNotEmpty;
+                        final scrollOffset = shouldScroll 
+                            ? -scrollAmount * _imageScrollAnimation.value 
+                            : 0.0;
+                        
+                        return Transform.translate(
+                          offset: Offset(0, scrollOffset),
+                          child: Image.network(
+                            widget.project.imageUrl,
+                            fit: BoxFit.cover,
+                            frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                              // Track successful image load
+                              if (frame != null && !_imageLoadedSuccessfully) {
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  if (mounted) {
+                                    setState(() {
+                                      _imageLoadedSuccessfully = true;
+                                    });
+                                    // If already hovering, start the animation
+                                    if (_isHovered) {
+                                      _imageScrollController.repeat(reverse: true);
+                                    }
+                                  }
+                                });
+                              }
+                              return child;
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              // Mark image as failed to load
+                              if (_imageLoadedSuccessfully) {
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  if (mounted) {
+                                    setState(() {
+                                      _imageLoadedSuccessfully = false;
+                                    });
+                                    // Stop animation if running
+                                    _imageScrollController.stop();
+                                    _imageScrollController.reset();
+                                  }
+                                });
+                              }
+                              return Container(
+                                color: AppColors.surfaceLight,
+                                alignment: const Alignment(0, -0.5), // Position more upwards
+                                child: const Icon(
+                                  Icons.image,
+                                  size: 40,
+                                  color: AppColors.textTertiary,
+                                ),
+                              );
+                            },
                           ),
                         );
                       },
