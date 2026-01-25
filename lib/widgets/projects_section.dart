@@ -1299,10 +1299,10 @@ class _MiniProjectCardState extends State<_MiniProjectCard>
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
                           color: AppColors.surfaceLight,
+                          alignment: const Alignment(0, -0.5), // Position more upwards
                           child: const Icon(
                             Icons.image,
                             size: 40,
-                            
                             color: AppColors.textTertiary,
                           ),
                         );

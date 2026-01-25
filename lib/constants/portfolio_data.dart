@@ -33,6 +33,7 @@ I love problem solving and breaking down complex challenges into simple, practic
     {'name': 'Firebase'},
     {'name': 'Google Services'},
     {'name': 'Hive'},
+    {'name': 'sqflite'},
     {'name': 'REST API'},
     {'name': 'Figma'},
     {'name': 'Git'},
@@ -148,44 +149,52 @@ I love problem solving and breaking down complex challenges into simple, practic
     },
     // Mini Projects
     {
+      'title': 'Netflix Clone',
+      'description':
+          'A streaming app that mimics Netflix, allowing users to browse movies and TV shows with detailed content views.',
+      'technologies': ['TMDB API', 'REST API', 'HTTP'],
+      'imageUrl': 'https://res.cloudinary.com/dilbmyvfv/image/upload/v1769331544/Screenshot_2026-01-25_at_11.58.07_AM_gz5bno.png',
+      'githubUrl': 'https://github.com/Shaham-Ahammed/neflix_clone',
+      'type': 'mini',
+    },
+    {
+      'title': 'Recipe App',
+      'description':
+          'A recipe browsing app that lets users explore meals, view details, and save favorites for quick access.',
+      'technologies': ['TheMealDB API', 'sqflite', 'debouncer'],
+      'imageUrl':
+          'https://res.cloudinary.com/dilbmyvfv/image/upload/v1769331335/Screenshot_2026-01-25_at_11.55.16_AM_f7wlig.png',
+      'githubUrl':
+          'https://github.com/Shaham-Ahammed/LET-HIM-COOK---Recipe-application',
+      'type': 'mini',
+    },
+    {
+      'title': 'Student Record',
+      'description':
+          'An app for managing student records with the ability to add, view, update, and delete details.',
+      'technologies': ['sqflite', 'GetX'],
+      'imageUrl': 'https://via.placeholder.com/400x250',
+      'githubUrl':
+          'https://github.com/Shaham-Ahammed/student-management-app-getX-sqflite',
+      'type': 'mini',
+    },
+    {
       'title': 'Weather App',
       'description':
-          'Beautiful weather application with location-based forecasts and detailed weather analytics.',
-      'technologies': ['Flutter', 'REST API', 'Location Services'],
-      'imageUrl': 'https://m.media-amazon.com/images/I/6132jfJf-fL.png',
-      'galleryImages': [
-        'https://via.placeholder.com/800x600/0EA5E9/FFFFFF?text=Weather+App+1',
-        'https://via.placeholder.com/800x600/06B6D4/FFFFFF?text=Weather+App+2',
-        'https://via.placeholder.com/800x600/0891B2/FFFFFF?text=Weather+App+3',
-      ],
-      'githubUrl': 'https://github.com/yourusername/project3',
+          'A weather app that provides real-time weather information based on user searches.',
+      'technologies': ['Bloc', 'HTTP'],
+      'imageUrl': 'https://res.cloudinary.com/dilbmyvfv/image/upload/v1769329926/Screenshot_2026-01-25_at_11.31.41_AM_fb2pps.png',
+      'githubUrl': 'https://github.com/Shaham-Ahammed/weather-app-bloc-and-api',
       'type': 'mini',
     },
+
     {
-      'title': 'Social Media Dashboard',
-      'description':
-          'Comprehensive dashboard for managing multiple social media accounts with analytics and scheduling.',
-      'technologies': ['React', 'Express', 'PostgreSQL'],
-      'imageUrl': 'https://res.cloudinary.com/dilbmyvfv/image/upload/v1769086892/WhatsApp_Image_2026-01-22_at_15.54.51_3_ebqket.jpg',
-      'githubUrl': 'https://github.com/yourusername/project4',
-      'type': 'mini',
-    },
-    {
-      'title': 'Calculator App',
-      'description':
-          'A modern calculator app with scientific functions and beautiful UI.',
-      'technologies': ['Flutter', 'Dart'],
-      'imageUrl': 'https://via.placeholder.com/400x250',
-      'githubUrl': 'https://github.com/yourusername/calculator',
-      'type': 'mini',
-    },
-    {
-      'title': 'Todo App',
-      'description':
-          'Simple and elegant todo application with local storage and reminders.',
-      'technologies': ['Flutter', 'Hive'],
-      'imageUrl': 'https://via.placeholder.com/400x250',
-      'githubUrl': 'https://github.com/yourusername/todo',
+      'title': 'Tic Tac Toe Game',
+      'description': 'A simple and fun Tic Tac Toe game.',
+      'technologies': ['2D array'],
+      'imageUrl': 'https://res.cloudinary.com/dilbmyvfv/image/upload/v1769329703/Screenshot_2026-01-25_at_11.25.31_AM_jqxn6s.png',
+      'githubUrl':
+          'https://github.com/Shaham-Ahammed/tic-tac-toe/blob/main/lib/main.dart',
       'type': 'mini',
     },
   ];
