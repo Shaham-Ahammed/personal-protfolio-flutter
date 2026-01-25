@@ -15,10 +15,13 @@ class ProjectsSection extends StatefulWidget {
   State<ProjectsSection> createState() => _ProjectsSectionState();
 }
 
-class _ProjectsSectionState extends State<ProjectsSection> {
+class _ProjectsSectionState extends State<ProjectsSection>
+    with WidgetsBindingObserver {
   // Viewport fraction keeps three cards visible (prev/active/next)
   late final PageController _mainProjectsController;
   int _currentMainProjectIndex = 0;
+  final GlobalKey _miniProjectsKey = GlobalKey();
+  bool _miniProjectsAnimated = false;
 
   @override
   void initState() {
@@ -48,13 +51,99 @@ class _ProjectsSectionState extends State<ProjectsSection> {
           _currentMainProjectIndex = initialPage % projectsCount;
         });
       }
+      // Check mini projects visibility on initial load and periodically
+      _checkMiniProjectsVisibility();
+      _startPeriodicVisibilityCheck();
     });
+    
+    // Add observer to check visibility when app resumes
+    WidgetsBinding.instance.addObserver(this);
+  }
+  
+  void _startPeriodicVisibilityCheck() {
+    // Check visibility periodically (every 100ms) continuously
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        _checkMiniProjectsVisibility();
+        _startPeriodicVisibilityCheck();
+      }
+    });
+  }
+  
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _checkMiniProjectsVisibility();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _mainProjectsController.dispose();
     super.dispose();
+  }
+
+  void _checkMiniProjectsVisibility() {
+    if (!mounted) {
+      return;
+    }
+
+    final context = _miniProjectsKey.currentContext;
+    if (context == null || !context.mounted) return;
+
+    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null || !renderBox.hasSize) return;
+
+    try {
+      final position = renderBox.localToGlobal(Offset.zero);
+      final widgetSize = renderBox.size;
+      
+      // Get screen size and viewport info
+      final screenSize = MediaQuery.of(context).size;
+      final screenHeight = screenSize.height;
+      
+      // Account for any app bars or padding at the top
+      final viewportTop = 0.0; // Top of visible screen
+      final viewportBottom = screenHeight; // Bottom of visible screen
+
+      // Widget position relative to screen
+      final widgetTop = position.dy;
+      final widgetBottom = widgetTop + widgetSize.height;
+
+      // Calculate how much of the widget is visible in the viewport
+      final visibleTop = widgetTop.clamp(viewportTop, viewportBottom);
+      final visibleBottom = widgetBottom.clamp(viewportTop, viewportBottom);
+      final visibleHeight = (visibleBottom - visibleTop).clamp(0.0, widgetSize.height);
+
+      // Check if 70% of the widget is visible
+      if (widgetSize.height > 0) {
+        final visibilityPercentage = visibleHeight / widgetSize.height;
+        
+        // Also check if widget is at least partially in viewport
+        final isInViewport = widgetBottom > viewportTop && widgetTop < viewportBottom;
+        final shouldBeAnimated = isInViewport && visibilityPercentage >= 0.7;
+        
+        // Check if widget is completely out of view (100% not visible)
+        final isCompletelyOutOfView = widgetBottom <= viewportTop || widgetTop >= viewportBottom;
+        
+        // Update animation state based on visibility
+        if (shouldBeAnimated && !_miniProjectsAnimated && mounted) {
+          // Section became 70% visible - trigger animation
+          setState(() {
+            _miniProjectsAnimated = true;
+          });
+        } else if (isCompletelyOutOfView && _miniProjectsAnimated && mounted) {
+          // Section is 100% out of view - reset to invisible for next time
+          setState(() {
+            _miniProjectsAnimated = false;
+          });
+        }
+      }
+    } catch (e) {
+      // Silently handle any errors in visibility calculation
+      // This can happen during layout or if widget is not yet rendered
+    }
   }
 
   @override
@@ -73,15 +162,28 @@ class _ProjectsSectionState extends State<ProjectsSection> {
         .where((p) => p.type == ProjectType.mini)
         .toList();
 
-    return Container(
-      width: double.infinity,
-      constraints: BoxConstraints(minHeight: size.height),
-      color: AppColors.background,
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 20 : 60,
-        vertical: isMobile ? 60 : 100,
-      ),
-      child: SingleChildScrollView(
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        // Listen to scroll notifications from parent scroll view
+        if (notification is ScrollUpdateNotification ||
+            notification is ScrollEndNotification ||
+            notification is ScrollStartNotification) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _checkMiniProjectsVisibility();
+            }
+          });
+        }
+        return false; // Allow notification to bubble up
+      },
+      child: Container(
+        width: double.infinity,
+        constraints: BoxConstraints(minHeight: size.height),
+        color: AppColors.background,
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 20 : 60,
+          vertical: isMobile ? 60 : 100,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -275,6 +377,7 @@ class _ProjectsSectionState extends State<ProjectsSection> {
     bool isMobile,
   ) {
     return SizedBox(
+      key: _miniProjectsKey,
       height: isMobile ? 360 : 400,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
@@ -285,9 +388,11 @@ class _ProjectsSectionState extends State<ProjectsSection> {
             margin: EdgeInsets.only(
               right: index < projects.length - 1 ? 24 : 0,
             ),
-            child: _MiniProjectCard(
+            child: _AnimatedMiniProjectCard(
               project: projects[index],
               isMobile: isMobile,
+              index: index,
+              shouldAnimate: _miniProjectsAnimated,
             ),
           );
         },
@@ -815,6 +920,150 @@ class _NavigationButtonState extends State<_NavigationButton>
           },
         ),
       ),
+    );
+  }
+}
+
+class _AnimatedMiniProjectCard extends StatefulWidget {
+  final Project project;
+  final bool isMobile;
+  final int index;
+  final bool shouldAnimate;
+
+  const _AnimatedMiniProjectCard({
+    required this.project,
+    required this.isMobile,
+    required this.index,
+    required this.shouldAnimate,
+  });
+
+  @override
+  State<_AnimatedMiniProjectCard> createState() =>
+      _AnimatedMiniProjectCardState();
+}
+
+class _AnimatedMiniProjectCardState extends State<_AnimatedMiniProjectCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _slideAnimation;
+  late Animation<double> _opacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    // Total duration should accommodate all staggered animations
+    // Assuming max 10 cards: 10 * 0.1s delay + 0.6s animation = 1.6s
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    );
+
+    // Calculate staggered delay - each card starts 0.1 seconds (100ms) after the previous
+    // Convert to fraction of total duration (1600ms)
+    final delaySeconds = widget.index * 0.1;
+    final animationDurationSeconds = 0.6;
+    final totalDurationSeconds = 1.6;
+    
+    final delayFraction = (delaySeconds / totalDurationSeconds).clamp(0.0, 1.0);
+    final endFraction = ((delaySeconds + animationDurationSeconds) / totalDurationSeconds).clamp(0.0, 1.0);
+    
+    // Slide animation from left (-200) to right (0)
+    _slideAnimation = Tween<double>(
+      begin: -200.0,
+      end: 0.0,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Interval(
+          delayFraction,
+          endFraction,
+          curve: Curves.easeOutCubic,
+        ),
+      ),
+    );
+
+    // Opacity animation
+    _opacityAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Interval(
+          delayFraction,
+          endFraction,
+          curve: Curves.easeOut,
+        ),
+      ),
+    );
+
+    // Always start with controller at 0 (invisible/hidden state)
+    _controller.value = 0.0;
+    
+    // If shouldAnimate is true, start animation
+    if (widget.shouldAnimate) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _controller.forward();
+        }
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(_AnimatedMiniProjectCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    if (widget.shouldAnimate && !oldWidget.shouldAnimate) {
+      // Section became visible - start animation
+      _controller.reset();
+      _controller.forward();
+    } else if (!widget.shouldAnimate && oldWidget.shouldAnimate) {
+      // Section went out of view - reset to invisible state
+      _controller.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Always use animation wrapper - cards start invisible and animate when shouldAnimate is true
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        // Get animation values, with fallbacks
+        double slideValue = -200.0; // Start hidden
+        double opacityValue = 0.0; // Start invisible
+        
+        try {
+          slideValue = _slideAnimation.value;
+          opacityValue = _opacityAnimation.value;
+        } catch (e) {
+          // If animation values are invalid, use initial hidden state
+          slideValue = -200.0;
+          opacityValue = 0.0;
+        }
+        
+        // Clamp values to valid ranges
+        slideValue = slideValue.clamp(-200.0, 0.0);
+        opacityValue = opacityValue.clamp(0.0, 1.0);
+        
+        return Transform.translate(
+          offset: Offset(slideValue, 0),
+          child: Opacity(
+            opacity: opacityValue,
+            child: _MiniProjectCard(
+              project: widget.project,
+              isMobile: widget.isMobile,
+            ),
+          ),
+        );
+      },
     );
   }
 }
