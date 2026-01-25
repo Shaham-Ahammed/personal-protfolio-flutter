@@ -152,7 +152,7 @@ I love problem solving and breaking down complex challenges into simple, practic
       'description':
           'Beautiful weather application with location-based forecasts and detailed weather analytics.',
       'technologies': ['Flutter', 'REST API', 'Location Services'],
-      'imageUrl': 'https://via.placeholder.com/400x250',
+      'imageUrl': 'https://m.media-amazon.com/images/I/6132jfJf-fL.png',
       'galleryImages': [
         'https://via.placeholder.com/800x600/0EA5E9/FFFFFF?text=Weather+App+1',
         'https://via.placeholder.com/800x600/06B6D4/FFFFFF?text=Weather+App+2',
@@ -166,7 +166,7 @@ I love problem solving and breaking down complex challenges into simple, practic
       'description':
           'Comprehensive dashboard for managing multiple social media accounts with analytics and scheduling.',
       'technologies': ['React', 'Express', 'PostgreSQL'],
-      'imageUrl': 'https://via.placeholder.com/400x250',
+      'imageUrl': 'https://res.cloudinary.com/dilbmyvfv/image/upload/v1769086892/WhatsApp_Image_2026-01-22_at_15.54.51_3_ebqket.jpg',
       'githubUrl': 'https://github.com/yourusername/project4',
       'type': 'mini',
     },

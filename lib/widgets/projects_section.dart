@@ -275,13 +275,13 @@ class _ProjectsSectionState extends State<ProjectsSection> {
     bool isMobile,
   ) {
     return SizedBox(
-      height: isMobile ? 320 : 360,
+      height: isMobile ? 360 : 400,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: projects.length,
         itemBuilder: (context, index) {
           return Container(
-            width: isMobile ? 280 : 320,
+            width: isMobile ? 300 : 340,
             margin: EdgeInsets.only(
               right: index < projects.length - 1 ? 24 : 0,
             ),
@@ -836,214 +836,368 @@ class _MiniProjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.2),
-          width: 1,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+      
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            width: 1.5,
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: Container(
-              height: 160,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.primary.withValues(alpha: 0.1),
-                    AppColors.surfaceLight,
+        child: Stack(
+          children: [
+            // Expanded image area with raindrop blur effect
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Main image
+                    Image.network(
+                      
+                      project.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: AppColors.surfaceLight,
+                          child: const Icon(
+                            Icons.image,
+                            size: 40,
+                            
+                            color: AppColors.textTertiary,
+                          ),
+                        );
+                      },
+                    ),
+                    // Gradient overlay for depth
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            AppColors.background.withValues(alpha: 0.4),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Raindrop blur effect below title area - start lower to show more image
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: FractionallySizedBox(
+                        heightFactor: 0.5,
+                        alignment: Alignment.bottomCenter,
+                        child: ClipRect(
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                            child: CustomPaint(
+                              painter: _RaindropBlurPainter(),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.transparent,
+                                      AppColors.background.withValues(alpha: 0.2),
+                                      AppColors.background.withValues(alpha: 0.4),
+                                    ],
+                                    stops: const [0.0, 0.3, 1.0],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              child: Stack(
-                fit: StackFit.expand,
+            ),
+            // Glass morphism card content
+            Positioned.fill(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Image.network(
-                    project.imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: AppColors.surfaceLight,
-                        child: const Icon(
-                          Icons.image,
-                          size: 40,
-                          color: AppColors.textTertiary,
-                        ),
-                      );
-                    },
-                  ),
+                  // Title area with glass background
                   Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          AppColors.background.withValues(alpha: 0.6),
-                        ],
+                    padding: const EdgeInsets.fromLTRB(20, 130, 20, 16),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            project.title,
+                            style: AppTextStyles.heading4(context).copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Glass content area
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(20),
+                      ),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+  
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                AppColors.surface.withValues(alpha: 0.2),
+                                AppColors.surface.withValues(alpha: 0.4),
+                              ],
+                            ),
+                            borderRadius: const BorderRadius.vertical(
+                              bottom: Radius.circular(20),
+                            ),
+                            border: Border(
+                              top: BorderSide(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  project.description,
+                                  style: AppTextStyles.bodySmall(context).copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: project.technologies
+                                    .take(3)
+                                    .map(
+                                      (tech) => ClipRRect(
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: BackdropFilter(
+                                          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primary.withValues(alpha: 0.25),
+                                              borderRadius: BorderRadius.circular(16),
+                                              border: Border.all(
+                                                color: AppColors.primary.withValues(alpha: 0.3),
+                                                width: 1,
+                                              ),
+                                            ),
+                                            child: Text(
+                                              tech,
+                                              style: AppTextStyles.bodySmall(context).copyWith(
+                                                fontSize: 10,
+                                                color: AppColors.primaryLight,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
+                              const SizedBox(height: 12),
+                              Builder(
+                                builder: (context) {
+                                  final buttons = <Widget>[];
+
+                                  if (project.githubUrl != null) {
+                                    buttons.add(
+                                      _ActionButton(
+                                        icon: Icons.code,
+                                        label: 'Code',
+                                        onTap: () => _launchUrl(project.githubUrl),
+                                        isSmall: true,
+                                      ),
+                                    );
+                                  }
+                                  if (project.iosUrl != null) {
+                                    buttons.add(
+                                      _ActionButton(
+                                        icon: Icons.phone_iphone,
+                                        label: 'iOS',
+                                        onTap: () => _launchUrl(project.iosUrl),
+                                        isSmall: true,
+                                      ),
+                                    );
+                                  }
+                                  if (project.androidUrl != null) {
+                                    buttons.add(
+                                      _ActionButton(
+                                        icon: Icons.android,
+                                        label: 'Android',
+                                        onTap: () => _launchUrl(project.androidUrl),
+                                        isSmall: true,
+                                      ),
+                                    );
+                                  }
+                                  if (project.userAndroidUrl != null) {
+                                    buttons.add(
+                                      _ActionButton(
+                                        icon: Icons.android,
+                                        label: 'User APK',
+                                        onTap: () => _launchUrl(project.userAndroidUrl),
+                                        isSmall: true,
+                                      ),
+                                    );
+                                  }
+                                  if (project.adminAndroidUrl != null) {
+                                    buttons.add(
+                                      _ActionButton(
+                                        icon: Icons.admin_panel_settings,
+                                        label: 'Admin APK',
+                                        onTap: () => _launchUrl(project.adminAndroidUrl),
+                                        isSmall: true,
+                                      ),
+                                    );
+                                  }
+                                  if (project.webUrl != null) {
+                                    buttons.add(
+                                      _ActionButton(
+                                        icon: Icons.language,
+                                        label: 'Web',
+                                        onTap: () => _launchUrl(project.webUrl),
+                                        isSmall: true,
+                                      ),
+                                    );
+                                  }
+
+                                  if (buttons.isEmpty) return const SizedBox.shrink();
+
+                                  final rowChildren = <Widget>[];
+                                  for (int i = 0; i < buttons.length; i++) {
+                                    rowChildren.add(buttons[i]);
+                                    if (i < buttons.length - 1) {
+                                      rowChildren.add(const SizedBox(width: 8));
+                                    }
+                                  }
+
+                                  return SizedBox(
+                                    height: 40,
+                                    child: InteractiveViewer(
+                                      constrained: false,
+                                      panEnabled: true,
+                                      scaleEnabled: false,
+                                      minScale: 1.0,
+                                      maxScale: 1.0,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: rowChildren,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    project.title,
-                    style: AppTextStyles.heading4(context),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: Text(
-                      project.description,
-                      style: AppTextStyles.bodySmall(context),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: project.technologies
-                        .take(3)
-                        .map(
-                          (tech) => Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Text(
-                              tech,
-                              style: AppTextStyles.bodySmall(context).copyWith(
-                                fontSize: 10,
-                                color: AppColors.primaryLight,
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                  const SizedBox(height: 12),
-                  Builder(
-                    builder: (context) {
-                      final buttons = <Widget>[];
-
-                      if (project.githubUrl != null) {
-                        buttons.add(
-                          _ActionButton(
-                            icon: Icons.code,
-                            label: 'Code',
-                            onTap: () => _launchUrl(project.githubUrl),
-                            isSmall: true,
-                          ),
-                        );
-                      }
-                      if (project.iosUrl != null) {
-                        buttons.add(
-                          _ActionButton(
-                            icon: Icons.phone_iphone,
-                            label: 'iOS',
-                            onTap: () => _launchUrl(project.iosUrl),
-                            isSmall: true,
-                          ),
-                        );
-                      }
-                      if (project.androidUrl != null) {
-                        buttons.add(
-                          _ActionButton(
-                            icon: Icons.android,
-                            label: 'Android',
-                            onTap: () => _launchUrl(project.androidUrl),
-                            isSmall: true,
-                          ),
-                        );
-                      }
-                      if (project.userAndroidUrl != null) {
-                        buttons.add(
-                          _ActionButton(
-                            icon: Icons.android,
-                            label: 'User APK',
-                            onTap: () => _launchUrl(project.userAndroidUrl),
-                            isSmall: true,
-                          ),
-                        );
-                      }
-                      if (project.adminAndroidUrl != null) {
-                        buttons.add(
-                          _ActionButton(
-                            icon: Icons.admin_panel_settings,
-                            label: 'Admin APK',
-                            onTap: () => _launchUrl(project.adminAndroidUrl),
-                            isSmall: true,
-                          ),
-                        );
-                      }
-                      if (project.webUrl != null) {
-                        buttons.add(
-                          _ActionButton(
-                            icon: Icons.language,
-                            label: 'Web',
-                            onTap: () => _launchUrl(project.webUrl),
-                            isSmall: true,
-                          ),
-                        );
-                      }
-
-                      if (buttons.isEmpty) return const SizedBox.shrink();
-
-                      final rowChildren = <Widget>[];
-                      for (int i = 0; i < buttons.length; i++) {
-                        rowChildren.add(buttons[i]);
-                        if (i < buttons.length - 1) {
-                          rowChildren.add(const SizedBox(width: 8));
-                        }
-                      }
-
-                      return SizedBox(
-                        height: 40,
-                        child: InteractiveViewer(
-                          constrained: false,
-                          panEnabled: true,
-                          scaleEnabled: false,
-                          minScale: 1.0,
-                          maxScale: 1.0,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: rowChildren,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+}
+
+// Custom painter for raindrop blur effect
+class _RaindropBlurPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Create raindrop-like blur patterns with varying sizes
+    final raindrops = [
+      {'pos': Offset(size.width * 0.15, size.height * 0.2), 'size': 20.0},
+      {'pos': Offset(size.width * 0.35, size.height * 0.25), 'size': 15.0},
+      {'pos': Offset(size.width * 0.55, size.height * 0.3), 'size': 25.0},
+      {'pos': Offset(size.width * 0.75, size.height * 0.28), 'size': 18.0},
+      {'pos': Offset(size.width * 0.25, size.height * 0.45), 'size': 22.0},
+      {'pos': Offset(size.width * 0.65, size.height * 0.5), 'size': 16.0},
+      {'pos': Offset(size.width * 0.85, size.height * 0.48), 'size': 20.0},
+      {'pos': Offset(size.width * 0.1, size.height * 0.6), 'size': 14.0},
+      {'pos': Offset(size.width * 0.45, size.height * 0.65), 'size': 24.0},
+      {'pos': Offset(size.width * 0.7, size.height * 0.7), 'size': 19.0},
+      {'pos': Offset(size.width * 0.3, size.height * 0.75), 'size': 17.0},
+      {'pos': Offset(size.width * 0.6, size.height * 0.8), 'size': 21.0},
+    ];
+
+    for (final drop in raindrops) {
+      final pos = drop['pos'] as Offset;
+      final radius = drop['size'] as double;
+      
+      // Draw raindrop with gradient-like effect
+      final paint = Paint()
+        ..style = PaintingStyle.fill
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
+      
+      // Outer glow
+      canvas.drawCircle(
+        pos,
+        radius,
+        paint..color = Colors.white.withValues(alpha: 0.08),
+      );
+      
+      // Inner highlight
+      canvas.drawCircle(
+        pos,
+        radius * 0.6,
+        paint..color = Colors.white.withValues(alpha: 0.12),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _ActionButton extends StatefulWidget {
