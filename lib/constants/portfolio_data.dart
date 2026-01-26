@@ -174,7 +174,7 @@ I love problem solving and breaking down complex challenges into simple, practic
       'description':
           'An app for managing student records with the ability to add, view, update, and delete details.',
       'technologies': ['sqflite', 'GetX'],
-      'imageUrl': 'https://via.placeholder.com/400x250',
+      'imageUrl': '',
       'githubUrl':
           'https://github.com/Shaham-Ahammed/student-management-app-getX-sqflite',
       'type': 'mini',

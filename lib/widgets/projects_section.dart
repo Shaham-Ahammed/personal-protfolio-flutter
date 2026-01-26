@@ -9,7 +9,9 @@ import '../constants/portfolio_data.dart';
 import '../models/project_model.dart';
 
 class ProjectsSection extends StatefulWidget {
-  const ProjectsSection({super.key});
+  final Function(VoidCallback)? onRegisterReset;
+  
+  const ProjectsSection({super.key, this.onRegisterReset});
 
   @override
   State<ProjectsSection> createState() => _ProjectsSectionState();
@@ -21,7 +23,9 @@ class _ProjectsSectionState extends State<ProjectsSection>
   late final PageController _mainProjectsController;
   int _currentMainProjectIndex = 0;
   final GlobalKey _miniProjectsKey = GlobalKey();
+  final GlobalKey<_VisibilityDetectedMainProjectsState> _mainProjectsKey = GlobalKey();
   bool _miniProjectsAnimated = false;
+  int _miniProjectsResetKey = 0; // Key to force rebuild of mini projects
 
   @override
   void initState() {
@@ -58,6 +62,27 @@ class _ProjectsSectionState extends State<ProjectsSection>
     
     // Add observer to check visibility when app resumes
     WidgetsBinding.instance.addObserver(this);
+    
+    // Register reset callback with parent
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.onRegisterReset != null) {
+        widget.onRegisterReset!(resetAnimations);
+      }
+    });
+  }
+  
+  void resetAnimations() {
+    // Reset main projects fade animation
+    final mainProjectsState = _mainProjectsKey.currentState;
+    if (mainProjectsState != null) {
+      mainProjectsState.resetAnimation();
+    }
+    
+    // Reset mini projects slide animation
+    setState(() {
+      _miniProjectsAnimated = false;
+      _miniProjectsResetKey++; // Force rebuild of mini projects
+    });
   }
   
   void _startPeriodicVisibilityCheck() {
@@ -198,6 +223,7 @@ class _ProjectsSectionState extends State<ProjectsSection>
             // Main Projects Section
             if (mainProjects.isNotEmpty) ...[
               _VisibilityDetectedMainProjects(
+                key: _mainProjectsKey,
                 child: _buildMainProjectsCarousel(context, mainProjects, isMobile),
               ),
               const SizedBox(height: 80),
@@ -382,6 +408,7 @@ class _ProjectsSectionState extends State<ProjectsSection>
       key: _miniProjectsKey,
       height: isMobile ? 360 : 400,
       child: ListView.builder(
+        key: ValueKey(_miniProjectsResetKey), // Force rebuild when reset
         scrollDirection: Axis.horizontal,
         itemCount: projects.length,
         itemBuilder: (context, index) {
@@ -391,6 +418,7 @@ class _ProjectsSectionState extends State<ProjectsSection>
               right: index < projects.length - 1 ? 24 : 0,
             ),
             child: _AnimatedMiniProjectCard(
+              key: ValueKey('mini_${_miniProjectsResetKey}_$index'), // Unique key per reset
               project: projects[index],
               isMobile: isMobile,
               index: index,
@@ -407,6 +435,7 @@ class _VisibilityDetectedMainProjects extends StatefulWidget {
   final Widget child;
 
   const _VisibilityDetectedMainProjects({
+    super.key,
     required this.child,
   });
 
@@ -468,6 +497,18 @@ class _VisibilityDetectedMainProjectsState
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
       _checkVisibility();
+    }
+  }
+
+  void resetAnimation() {
+    if (mounted) {
+      setState(() {
+        _hasAnimated = false;
+      });
+      _fadeController.reset();
+      // Restart visibility check after reset
+      _checkVisibility();
+      _startPeriodicVisibilityCheck();
     }
   }
 
@@ -1078,6 +1119,7 @@ class _AnimatedMiniProjectCard extends StatefulWidget {
   final bool shouldAnimate;
 
   const _AnimatedMiniProjectCard({
+    super.key,
     required this.project,
     required this.isMobile,
     required this.index,

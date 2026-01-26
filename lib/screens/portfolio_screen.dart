@@ -14,14 +14,90 @@ class PortfolioScreen extends StatefulWidget {
   State<PortfolioScreen> createState() => _PortfolioScreenState();
 }
 
-class _PortfolioScreenState extends State<PortfolioScreen> {
+class _PortfolioScreenState extends State<PortfolioScreen>
+    with WidgetsBindingObserver {
   final ScrollController _scrollController = ScrollController();
   int _currentSection = 0;
+  final GlobalKey _homeSectionKey = GlobalKey();
+  bool _homeSectionVisible = false;
+  
+  // Callbacks to reset animations
+  VoidCallback? _resetProjectsAnimations;
+  VoidCallback? _resetExperienceAnimations;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkHomeSectionVisibility();
+      _startPeriodicHomeVisibilityCheck();
+    });
+  }
+
+  void _startPeriodicHomeVisibilityCheck() {
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        _checkHomeSectionVisibility();
+        _startPeriodicHomeVisibilityCheck();
+      }
+    });
+  }
+
+  void _checkHomeSectionVisibility() {
+    if (!mounted) return;
+
+    final context = _homeSectionKey.currentContext;
+    if (context == null || !context.mounted) return;
+
+    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null || !renderBox.hasSize) return;
+
+    try {
+      final position = renderBox.localToGlobal(Offset.zero);
+      final widgetSize = renderBox.size;
+      final screenSize = MediaQuery.of(context).size;
+      final screenHeight = screenSize.height;
+
+      final viewportTop = 0.0;
+      final viewportBottom = screenHeight;
+
+      final widgetTop = position.dy;
+      final widgetBottom = widgetTop + widgetSize.height;
+
+      final visibleTop = widgetTop.clamp(viewportTop, viewportBottom);
+      final visibleBottom = widgetBottom.clamp(viewportTop, viewportBottom);
+      final visibleHeight = (visibleBottom - visibleTop).clamp(0.0, widgetSize.height);
+
+      if (widgetSize.height > 0) {
+        final visibilityPercentage = visibleHeight / widgetSize.height;
+        final isInViewport = widgetBottom > viewportTop && widgetTop < viewportBottom;
+        final isVisible = isInViewport && visibilityPercentage >=1; // 100% visible
+
+        if (isVisible && !_homeSectionVisible && mounted) {
+          setState(() {
+            _homeSectionVisible = true;
+          });
+          // Reset animations when home section becomes visible
+          _resetProjectsAnimations?.call();
+          _resetExperienceAnimations?.call();
+        } else if (!isVisible && _homeSectionVisible && mounted) {
+          setState(() {
+            _homeSectionVisible = false;
+          });
+        }
+      }
+    } catch (e) {
+      // Silently handle errors
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _checkHomeSectionVisibility();
+    }
   }
 
   void _onScroll() {
@@ -39,6 +115,13 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         _currentSection = newSection;
       });
     }
+    
+    // Check home section visibility on scroll
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _checkHomeSectionVisibility();
+      }
+    });
   }
 
   void _scrollToSection(int sectionIndex) {
@@ -54,6 +137,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
@@ -73,7 +157,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
               children: [
                 SizedBox(
                   height: MediaQuery.of(context).size.height,
-                  child: const HomeSection(),
+                  child: HomeSection(key: _homeSectionKey),
                 ),
                 SizedBox(
                   // height: MediaQuery.of(context).size.height,
@@ -81,11 +165,19 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                 ),
                 SizedBox(
                   // height: MediaQuery.of(context).size.height,
-                  child: const ProjectsSection(),
+                  child: ProjectsSection(
+                    onRegisterReset: (resetCallback) {
+                      _resetProjectsAnimations = resetCallback;
+                    },
+                  ),
                 ),
                 SizedBox(
                   // height: MediaQuery.of(context).size.height,
-                  child: const ExperienceSection(),
+                  child: ExperienceSection(
+                    onRegisterReset: (resetCallback) {
+                      _resetExperienceAnimations = resetCallback;
+                    },
+                  ),
                 ),
                 SizedBox(
                   // height: MediaQuery.of(context).size.height,

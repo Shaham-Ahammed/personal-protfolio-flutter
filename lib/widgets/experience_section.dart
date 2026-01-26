@@ -6,7 +6,9 @@ import '../constants/portfolio_data.dart';
 import '../models/experience_model.dart';
 
 class ExperienceSection extends StatefulWidget {
-  const ExperienceSection({super.key});
+  final Function(VoidCallback)? onRegisterReset;
+  
+  const ExperienceSection({super.key, this.onRegisterReset});
 
   @override
   State<ExperienceSection> createState() => _ExperienceSectionState();
@@ -16,6 +18,7 @@ class _ExperienceSectionState extends State<ExperienceSection>
     with WidgetsBindingObserver {
   final GlobalKey _sectionKey = GlobalKey();
   bool _sectionAnimated = false;
+  int _experienceResetKey = 0; // Key to force rebuild of experience cards
 
   @override
   void initState() {
@@ -36,6 +39,13 @@ class _ExperienceSectionState extends State<ExperienceSection>
         }
       });
     });
+    
+    // Register reset callback with parent
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.onRegisterReset != null) {
+        widget.onRegisterReset!(resetAnimations);
+      }
+    });
   }
 
   @override
@@ -44,9 +54,19 @@ class _ExperienceSectionState extends State<ExperienceSection>
     super.dispose();
   }
 
+  void resetAnimations() {
+    setState(() {
+      _sectionAnimated = false;
+      _experienceResetKey++; // Force rebuild of experience cards
+    });
+    // Restart visibility check after reset
+    _checkSectionVisibility();
+    _startPeriodicVisibilityCheck();
+  }
+
   void _startPeriodicVisibilityCheck() {
     Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted) {
+      if (mounted && !_sectionAnimated) {
         _checkSectionVisibility();
         _startPeriodicVisibilityCheck();
       }
@@ -55,7 +75,7 @@ class _ExperienceSectionState extends State<ExperienceSection>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && mounted) {
+    if (state == AppLifecycleState.resumed && mounted && !_sectionAnimated) {
       _checkSectionVisibility();
     }
   }
@@ -74,7 +94,7 @@ class _ExperienceSectionState extends State<ExperienceSection>
   }
 
   void _checkSectionVisibility() {
-    if (!mounted) return;
+    if (!mounted || _sectionAnimated) return;
 
     final context = _sectionKey.currentContext;
     if (context == null || !context.mounted) return;
@@ -104,17 +124,13 @@ class _ExperienceSectionState extends State<ExperienceSection>
         final threshold = _getVisibilityThreshold();
         final shouldBeAnimated = isInViewport && visibilityPercentage >= threshold;
 
-        final isCompletelyOutOfView = widgetBottom <= viewportTop || widgetTop >= viewportBottom;
-
         if (shouldBeAnimated && !_sectionAnimated && mounted) {
           setState(() {
             _sectionAnimated = true;
           });
-        } else if (isCompletelyOutOfView && _sectionAnimated && mounted) {
-          setState(() {
-            _sectionAnimated = false;
-          });
         }
+        // Don't reset when section goes out of view - keep the animation state
+        // It will only reset when home section becomes visible
       }
     } catch (e) {
       // Silently handle errors
@@ -143,7 +159,7 @@ class _ExperienceSectionState extends State<ExperienceSection>
             notification is ScrollEndNotification ||
             notification is ScrollStartNotification) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
+            if (mounted && !_sectionAnimated) {
               _checkSectionVisibility();
             }
           });
@@ -187,37 +203,45 @@ class _ExperienceSectionState extends State<ExperienceSection>
         .toList();
 
     return isMobile
-        ? Column(
-            children: experiences
-                .asMap()
-                .entries
-                .map((entry) => Padding(
-                      padding: const EdgeInsets.only(bottom: 18),
-                      child: _ExperienceCard(
-                        experience: entry.value,
-                        isLast: entry.key == experiences.length - 1,
-                        isMobile: true,
-                        index: entry.key,
-                        shouldAnimate: _sectionAnimated,
-                      ),
-                    ))
-                .toList(),
+        ? SizedBox(
+            key: ValueKey(_experienceResetKey), // Force rebuild when reset
+            child: Column(
+              children: experiences
+                  .asMap()
+                  .entries
+                  .map((entry) => Padding(
+                        padding: const EdgeInsets.only(bottom: 18),
+                        child: _ExperienceCard(
+                          key: ValueKey('exp_${_experienceResetKey}_${entry.key}'), // Unique key per reset
+                          experience: entry.value,
+                          isLast: entry.key == experiences.length - 1,
+                          isMobile: true,
+                          index: entry.key,
+                          shouldAnimate: _sectionAnimated,
+                        ),
+                      ))
+                  .toList(),
+            ),
           )
-        : Column(
-            children: experiences
-                .asMap()
-                .entries
-                .map((entry) => Padding(
-                      padding: const EdgeInsets.only(bottom: 24),
-                      child: _ExperienceCard(
-                        experience: entry.value,
-                        isLast: entry.key == experiences.length - 1,
-                        isMobile: false,
-                        index: entry.key,
-                        shouldAnimate: _sectionAnimated,
-                      ),
-                    ))
-                .toList(),
+        : SizedBox(
+            key: ValueKey(_experienceResetKey), // Force rebuild when reset
+            child: Column(
+              children: experiences
+                  .asMap()
+                  .entries
+                  .map((entry) => Padding(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        child: _ExperienceCard(
+                          key: ValueKey('exp_${_experienceResetKey}_${entry.key}'), // Unique key per reset
+                          experience: entry.value,
+                          isLast: entry.key == experiences.length - 1,
+                          isMobile: false,
+                          index: entry.key,
+                          shouldAnimate: _sectionAnimated,
+                        ),
+                      ))
+                  .toList(),
+            ),
           );
   }
 }
@@ -230,6 +254,7 @@ class _ExperienceCard extends StatefulWidget {
   final bool shouldAnimate;
 
   const _ExperienceCard({
+    super.key,
     required this.experience,
     required this.isLast,
     required this.isMobile,
