@@ -2,23 +2,32 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:personal_portfoliio/constants/images.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 import '../constants/colors.dart';
 import '../constants/text_styles.dart';
 import '../constants/portfolio_data.dart';
 
 class AboutSection extends StatefulWidget {
-  const AboutSection({super.key});
+  final Function(VoidCallback)? onRegisterReset;
+
+  const AboutSection({super.key, this.onRegisterReset});
 
   @override
   State<AboutSection> createState() => _AboutSectionState();
 }
 
 class _AboutSectionState extends State<AboutSection>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _flareController;
+  late final AnimationController _slideController;
+  late final Animation<Offset> _contentSlide;
+  late final Animation<Offset> _gifSlide;
+  late final Animation<double> _fadeAnimation;
   late final List<_FlareParticle> _particles;
   double _lastT = 0;
+  bool _hasAnimated = false;
+  int _skillsResetKey = 0; // Key to force rebuild of skill bullets
 
   @override
   void initState() {
@@ -29,11 +38,59 @@ class _AboutSectionState extends State<AboutSection>
     )..addListener(_tick);
     _resetParticles();
     _flareController.repeat();
+
+    // Slide animation controller
+    _slideController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    // Content box slides in from left
+    _contentSlide =
+        Tween<Offset>(begin: const Offset(-0.3, 0), end: Offset.zero).animate(
+          CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+        );
+
+    // GIF container slides in from right
+    _gifSlide = Tween<Offset>(begin: const Offset(0.3, 0), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+        );
+
+    // Fade animation
+    _fadeAnimation = CurvedAnimation(
+      parent: _slideController,
+      curve: Curves.easeOut,
+    );
+
+    // Register reset callback with parent
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.onRegisterReset != null) {
+        widget.onRegisterReset!(resetAnimations);
+      }
+    });
+  }
+
+  void resetAnimations() {
+    setState(() {
+      _hasAnimated = false;
+      _skillsResetKey++; // Force rebuild of skill bullets to reset their animation state
+    });
+    _slideController.reset();
+  }
+
+  void _onVisibilityChanged(VisibilityInfo info) {
+    // Start animation when at least 30% of the widget is visible
+    if (info.visibleFraction > 0.3 && !_hasAnimated && mounted) {
+      _slideController.forward();
+      _hasAnimated = true;
+    }
   }
 
   @override
   void dispose() {
     _flareController.dispose();
+    _slideController.dispose();
     super.dispose();
   }
 
@@ -42,44 +99,73 @@ class _AboutSectionState extends State<AboutSection>
     final size = MediaQuery.of(context).size;
     final isMobile = size.width < 768;
 
-    return Container(
-      width: double.infinity,
-      constraints: BoxConstraints(minHeight: size.height),
-      color: AppColors.backgroundLight,
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 20 : 60,
-        vertical: isMobile ? 60 : 100,
-      ),
-      child: AnimatedBuilder(
-        animation: _flareController,
-        builder: (context, _) {
-          final flareValue = _flareController.value;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('ABOUT', style: AppTextStyles.sectionTitle(context)),
-              const SizedBox(height: 16),
-              Text('Who I Am', style: AppTextStyles.heading2(context)),
-              const SizedBox(height: 40),
-              isMobile
-                  ? _buildContentBox(context, flareProgress: flareValue)
-                  : Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          flex: 2,
+    return VisibilityDetector(
+      key: const Key('about-section'),
+      onVisibilityChanged: _onVisibilityChanged,
+      child: Container(
+        width: double.infinity,
+        constraints: BoxConstraints(minHeight: size.height),
+        color: AppColors.backgroundLight,
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 20 : 60,
+          vertical: isMobile ? 60 : 100,
+        ),
+        child: AnimatedBuilder(
+          animation: _flareController,
+          builder: (context, _) {
+            final flareValue = _flareController.value;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('ABOUT ME', style: AppTextStyles.sectionTitle(context)),
+                const SizedBox(height: 16),
+                Text('Who I Am', style: AppTextStyles.heading2(context)),
+                const SizedBox(height: 40),
+                isMobile
+                    ? SlideTransition(
+                        position: _contentSlide,
+                        child: FadeTransition(
+                          opacity: _fadeAnimation,
                           child: _buildContentBox(
                             context,
                             flareProgress: flareValue,
                           ),
                         ),
-                        const SizedBox(width: 60),
-                        Expanded(flex: 1, child: _buildGifContainer(context)),
-                      ],
-                    ),
-            ],
-          );
-        },
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: SlideTransition(
+                              position: _contentSlide,
+                              child: FadeTransition(
+                                opacity: _fadeAnimation,
+                                child: _buildContentBox(
+                                  context,
+                                  flareProgress: flareValue,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 60),
+                          Expanded(
+                            flex: 1,
+                            child: SlideTransition(
+                              position: _gifSlide,
+                              child: FadeTransition(
+                                opacity: _fadeAnimation,
+                                child: _buildGifContainer(context),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -187,7 +273,10 @@ class _AboutSectionState extends State<AboutSection>
               runSpacing: 12,
               children: [
                 for (final skillMap in PortfolioData.skills)
-                  _SkillBullet(name: skillMap['name'] as String),
+                  _SkillBullet(
+                    key: ValueKey('${skillMap['name']}_$_skillsResetKey'),
+                    name: skillMap['name'] as String,
+                  ),
               ],
             ),
           ],
@@ -206,13 +295,13 @@ class _AboutSectionState extends State<AboutSection>
           children: [
             // Decorative outlined container behind/offset from the GIF
             Positioned(
-              top: 26,
-              left: 46,
+              top: 20,
+              left: 38,
               child: Container(
                 width: 230,
                 height: 300,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(0),
                   border: Border.all(
                     color: AppColors.primary.withValues(alpha: 0.4),
                     width: 3,
@@ -226,7 +315,7 @@ class _AboutSectionState extends State<AboutSection>
               height: 300,
               width: 250,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(0),
                 color: Colors.black,
                 border: Border.all(
                   color: AppColors.primary.withValues(alpha: 0.2),
@@ -241,16 +330,16 @@ class _AboutSectionState extends State<AboutSection>
                 ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(0),
                 child: Image.asset(
-                  AppImages.aboutAnimation,
+                  PortfolioData.aboutImage,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
                       height: 220,
                       decoration: BoxDecoration(
                         color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(20),
+                        // borderRadius: BorderRadius.circular(0),
                         border: Border.all(
                           color: AppColors.primary.withValues(alpha: 0.2),
                           width: 1,
@@ -276,7 +365,7 @@ class _AboutSectionState extends State<AboutSection>
 }
 
 class _SkillBullet extends StatefulWidget {
-  const _SkillBullet({required this.name});
+  const _SkillBullet({super.key, required this.name});
 
   final String name;
 

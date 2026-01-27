@@ -26,6 +26,7 @@ class _PortfolioScreenState extends State<PortfolioScreen>
   bool _homeSectionVisible = false;
   
   // Callbacks to reset animations
+  VoidCallback? _resetAboutAnimations;
   VoidCallback? _resetProjectsAnimations;
   VoidCallback? _resetExperienceAnimations;
   VoidCallback? _resetContactAnimations;
@@ -85,6 +86,7 @@ class _PortfolioScreenState extends State<PortfolioScreen>
             _homeSectionVisible = true;
           });
           // Reset animations when home section becomes visible
+          _resetAboutAnimations?.call();
           _resetProjectsAnimations?.call();
           _resetExperienceAnimations?.call();
           _resetContactAnimations?.call();
@@ -237,7 +239,11 @@ class _PortfolioScreenState extends State<PortfolioScreen>
                 ),
                 SizedBox(
                   key: _aboutSectionKey,
-                  child: const AboutSection(),
+                  child: AboutSection(
+                    onRegisterReset: (resetCallback) {
+                      _resetAboutAnimations = resetCallback;
+                    },
+                  ),
                 ),
                 SizedBox(
                   key: _projectsSectionKey,

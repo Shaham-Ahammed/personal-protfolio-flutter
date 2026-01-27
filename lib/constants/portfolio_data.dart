@@ -4,7 +4,7 @@ class PortfolioData {
   static const String name = 'Shaham Ahammed';
   static const String title = 'Software Developer';
   static const String profileImagePath =
-      'assets/images/profile_image.jpeg'; // Replace with your image path
+      'assets/images/coding_boy.jpeg'; // Replace with your image path
   static const String quote =
       'Code is my canvas, and the screen is my art gallery.';
   static const String bio = '''
@@ -13,8 +13,7 @@ I'm a Flutter developer with 2+ years of experience building mobile apps and web
 I love problem solving and breaking down complex challenges into simple, practical solutions. I enjoy working both with a team and independently—whether it's collaborating on ideas or quietly wrestling with bugs until they finally give up. Always curious and always learning, I enjoy experimenting with new ideas and building things that genuinely make a difference.
 ''';
 
-  static const String aboutGifPath =
-      'https://user-images.githubusercontent.com/74038190/241765440-80728820-e06b-4f96-9c9e-9df46f0cc0a5.gif';
+  static const String aboutImage = 'assets/images/profile_image.jpeg';
   // Contact Information
   static const String email = 'shahamahammed66@gmail.com';
   static const String phone = '+91 9961628586';
@@ -22,10 +21,13 @@ I love problem solving and breaking down complex challenges into simple, practic
 
   // Social Media Links
   static const String githubUrl = 'https://github.com/Shaham-Ahammed';
-  static const String linkedinUrl = 'https://www.linkedin.com/in/shaham-ahammed-p-k-5a126b290/';
-  static const String instagramUrl = 'https://www.instagram.com/___.shaham.___?igsh=MWFpcTZjNXZvbTJxMA%3D%3D';
+  static const String linkedinUrl =
+      'https://www.linkedin.com/in/shaham-ahammed-p-k-5a126b290/';
+  static const String instagramUrl =
+      'https://www.instagram.com/___.shaham.___?igsh=MWFpcTZjNXZvbTJxMA%3D%3D';
   static const String leetcodeUrl = 'https://leetcode.com/u/Shaham_Ahammed/';
-  static const String whatsappUrl = 'https://wa.me/919961628586'; // WhatsApp with country code
+  static const String whatsappUrl =
+      'https://wa.me/919961628586'; // WhatsApp with country code
 
   // Skills
   static const List<Map<String, dynamic>> skills = [
