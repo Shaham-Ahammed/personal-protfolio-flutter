@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:simple_icons/simple_icons.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../constants/colors.dart';
 import '../constants/text_styles.dart';
 import '../constants/portfolio_data.dart';
@@ -188,27 +190,33 @@ class _ContactSectionState extends State<ContactSection> {
                 children: [
                   if (PortfolioData.githubUrl.isNotEmpty)
                     _SocialIconButton(
-                      icon: Icons.code,
-                      url: PortfolioData.githubUrl,
+                      icon: SimpleIcons.github,
+                      brandColor: const Color(0xFF181717), // GitHub black
                       onTap: () => _launchUrl(PortfolioData.githubUrl),
                     ),
                   if (PortfolioData.linkedinUrl.isNotEmpty)
                     _SocialIconButton(
-                      icon: Icons.business_center,
-                      url: PortfolioData.linkedinUrl,
+                      icon: FontAwesomeIcons.linkedin,
+                      brandColor: const Color(0xFF0A66C2), // LinkedIn blue
                       onTap: () => _launchUrl(PortfolioData.linkedinUrl),
-                    ),
-                  if (PortfolioData.twitterUrl.isNotEmpty)
-                    _SocialIconButton(
-                      icon: Icons.alternate_email,
-                      url: PortfolioData.twitterUrl,
-                      onTap: () => _launchUrl(PortfolioData.twitterUrl),
                     ),
                   if (PortfolioData.instagramUrl.isNotEmpty)
                     _SocialIconButton(
-                      icon: Icons.camera_alt,
-                      url: PortfolioData.instagramUrl,
+                      icon: SimpleIcons.instagram,
+                      brandColor: const Color(0xFFE4405F), // Instagram pink
                       onTap: () => _launchUrl(PortfolioData.instagramUrl),
+                    ),
+                  if (PortfolioData.leetcodeUrl.isNotEmpty)
+                    _SocialIconButton(
+                      icon: SimpleIcons.leetcode,
+                      brandColor: const Color(0xFFFFA116), // LeetCode orange
+                      onTap: () => _launchUrl(PortfolioData.leetcodeUrl),
+                    ),
+                  if (PortfolioData.whatsappUrl.isNotEmpty)
+                    _SocialIconButton(
+                      icon: SimpleIcons.whatsapp,
+                      brandColor: const Color(0xFF25D366), // WhatsApp green
+                      onTap: () => _launchUrl(PortfolioData.whatsappUrl),
                     ),
                 ],
               ),
@@ -252,27 +260,33 @@ class _ContactSectionState extends State<ContactSection> {
           children: [
             if (PortfolioData.githubUrl.isNotEmpty)
               _SocialIconButton(
-                icon: Icons.code,
-                url: PortfolioData.githubUrl,
+                icon: SimpleIcons.github,
+                brandColor: const Color(0xFF181717), // GitHub black
                 onTap: () => _launchUrl(PortfolioData.githubUrl),
               ),
             if (PortfolioData.linkedinUrl.isNotEmpty)
               _SocialIconButton(
-                icon: Icons.business_center,
-                url: PortfolioData.linkedinUrl,
+                icon: FontAwesomeIcons.linkedin,
+                brandColor: const Color(0xFF0A66C2), // LinkedIn blue
                 onTap: () => _launchUrl(PortfolioData.linkedinUrl),
-              ),
-            if (PortfolioData.twitterUrl.isNotEmpty)
-              _SocialIconButton(
-                icon: Icons.alternate_email,
-                url: PortfolioData.twitterUrl,
-                onTap: () => _launchUrl(PortfolioData.twitterUrl),
               ),
             if (PortfolioData.instagramUrl.isNotEmpty)
               _SocialIconButton(
-                icon: Icons.camera_alt,
-                url: PortfolioData.instagramUrl,
+                icon: SimpleIcons.instagram,
+                brandColor: const Color(0xFFE4405F), // Instagram pink
                 onTap: () => _launchUrl(PortfolioData.instagramUrl),
+              ),
+            if (PortfolioData.leetcodeUrl.isNotEmpty)
+              _SocialIconButton(
+                icon: SimpleIcons.leetcode,
+                brandColor: const Color(0xFFFFA116), // LeetCode orange
+                onTap: () => _launchUrl(PortfolioData.leetcodeUrl),
+              ),
+            if (PortfolioData.whatsappUrl.isNotEmpty)
+              _SocialIconButton(
+                icon: SimpleIcons.whatsapp,
+                brandColor: const Color(0xFF25D366), // WhatsApp green
+                onTap: () => _launchUrl(PortfolioData.whatsappUrl),
               ),
           ],
         ),
@@ -490,14 +504,9 @@ class _ExpandableContactTileState extends State<_ExpandableContactTile>
     const double collapsedWidth = 130.0;
     const double expandedWidth = 280.0;
     const double borderRadius = 12.0;
-    const double defaultBorderWidth = 1.0;
-    const double hoverBorderWidth = 3.0;
 
     // Colors for the chasing border effect
     const Color bgColor = Color(0xFF1E293B); // Same as surface/background
-    const Color darkChaseColor = Color(
-      0xFF060A12,
-    ); // Very dark, darker than background
 
     return MouseRegion(
       onEnter: (_) => _onHoverStart(),
@@ -652,33 +661,71 @@ class _RotatingBorderPainter extends CustomPainter {
   }
 }
 
-class _SocialIconButton extends StatelessWidget {
+class _SocialIconButton extends StatefulWidget {
   final IconData icon;
-  final String url;
   final VoidCallback onTap;
+  final Color brandColor;
 
   const _SocialIconButton({
     required this.icon,
-    required this.url,
     required this.onTap,
+    required this.brandColor,
   });
 
   @override
+  State<_SocialIconButton> createState() => _SocialIconButtonState();
+}
+
+class _SocialIconButtonState extends State<_SocialIconButton> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            width: 1,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: _isHovered ? widget.brandColor : AppColors.surface,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: _isHovered 
+                  ? widget.brandColor 
+                  : AppColors.primary.withValues(alpha: 0.3),
+              width: _isHovered ? 2 : 1,
+            ),
+            boxShadow: _isHovered
+                ? [
+                    // Outer glow
+                    BoxShadow(
+                      color: widget.brandColor.withValues(alpha: 0.6),
+                      blurRadius: 18,
+                      spreadRadius: 3,
+                    ),
+                    // Inner intense glow
+                    BoxShadow(
+                      color: widget.brandColor.withValues(alpha: 0.9),
+                      blurRadius: 12,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Center(
+            child: Icon(
+              widget.icon,
+              color: _isHovered ? Colors.white : AppColors.primaryLight,
+              size: 22,
+            ),
           ),
         ),
-        child: Icon(icon, color: AppColors.primaryLight, size: 20),
       ),
     );
   }

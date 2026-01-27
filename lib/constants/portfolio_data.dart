@@ -23,8 +23,9 @@ I love problem solving and breaking down complex challenges into simple, practic
   // Social Media Links
   static const String githubUrl = 'https://github.com/yourusername';
   static const String linkedinUrl = 'https://linkedin.com/in/yourusername';
-  static const String twitterUrl = 'https://twitter.com/yourusername';
   static const String instagramUrl = 'https://instagram.com/yourusername';
+  static const String leetcodeUrl = 'https://leetcode.com/yourusername';
+  static const String whatsappUrl = 'https://wa.me/919961628586'; // WhatsApp with country code
 
   // Skills
   static const List<Map<String, dynamic>> skills = [
