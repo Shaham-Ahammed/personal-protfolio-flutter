@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../constants/colors.dart';
 import '../constants/images.dart';
 import '../constants/text_styles.dart';
@@ -50,6 +52,13 @@ class _HomeSectionState extends State<HomeSection>
     super.dispose();
   }
 
+  Future<void> _downloadCV() async {
+    final Uri url = Uri.parse(PortfolioData.cvUrl);
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -64,14 +73,24 @@ class _HomeSectionState extends State<HomeSection>
         connectionDistance: isMobile ? 100 : 120,
         showCursorHalo: true,
         child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 20 : 60,
-              vertical: isMobile ? 40 : 80,
-            ),
-            child: isMobile
-                ? _buildMobileLayout(context)
-                : _buildDesktopLayout(context),
+          child: Stack(
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 20 : 60,
+                  vertical: isMobile ? 40 : 80,
+                ),
+                child: isMobile
+                    ? _buildMobileLayout(context)
+                    : _buildDesktopLayout(context),
+              ),
+              // Download CV Button at bottom left corner
+              Positioned(
+                left: isMobile ? 20 : 60,
+                bottom: isMobile ? 20 : 40,
+                child: _DownloadCVButton(onTap: _downloadCV),
+              ),
+            ],
           ),
         ),
       ),
@@ -613,5 +632,197 @@ class _FlutterBirdState extends State<_FlutterBird>
         ),
       ),
     );
+  }
+}
+
+class _DownloadCVButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _DownloadCVButton({required this.onTap});
+
+  @override
+  State<_DownloadCVButton> createState() => _DownloadCVButtonState();
+}
+
+class _DownloadCVButtonState extends State<_DownloadCVButton>
+    with SingleTickerProviderStateMixin {
+  bool _isHovered = false;
+  late AnimationController _borderController;
+
+  @override
+  void initState() {
+    super.initState();
+    _borderController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 6),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _borderController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedBuilder(
+          animation: _borderController,
+          builder: (context, child) {
+            return CustomPaint(
+              painter: _CirclingBorderPainter(
+                progress: _borderController.value,
+                isHovered: _isHovered,
+              ),
+              child: child,
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+            decoration: BoxDecoration(
+              color: _isHovered 
+                  ? AppColors.primary.withValues(alpha: 0.15) 
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(35),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.download_rounded,
+                  color: _isHovered 
+                      ? Colors.white 
+                      : AppColors.primaryLight,
+                  size: 26,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Download CV',
+                  style: TextStyle(
+                    color: _isHovered 
+                        ? Colors.white 
+                        : AppColors.primaryLight,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CirclingBorderPainter extends CustomPainter {
+  final double progress;
+  final bool isHovered;
+
+  _CirclingBorderPainter({
+    required this.progress,
+    required this.isHovered,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(35));
+    
+    // Draw base border (subtle)
+    final basePaint = Paint()
+      ..color = AppColors.primaryLight.withValues(alpha: 0.2)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    canvas.drawRRect(rrect, basePaint);
+
+    // Create path from rounded rect
+    final path = Path()..addRRect(rrect);
+    final pathMetrics = path.computeMetrics().first;
+    final totalLength = pathMetrics.length;
+
+    // Calculate the segment to draw (rotating around)
+    final segmentLength = totalLength * 0.35; // 35% of the border
+    final startDistance = (progress * totalLength) % totalLength;
+    
+    // Create gradient for the circling effect
+    final gradientPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = isHovered ? 3.5 : 2.5
+      ..strokeCap = StrokeCap.round;
+
+    // Draw the circling segment with gradient
+    final extractedPath = _extractPathSegment(
+      pathMetrics, 
+      startDistance, 
+      segmentLength, 
+      totalLength,
+    );
+    
+    // Apply sweep gradient for glow effect
+    final sweepGradient = SweepGradient(
+      startAngle: 0,
+      endAngle: pi * 2,
+      colors: [
+        Colors.transparent,
+        AppColors.primaryLight.withValues(alpha: 0.3),
+        isHovered ? AppColors.primary : AppColors.primaryLight,
+        isHovered ? AppColors.primary : AppColors.primaryLight,
+        AppColors.primaryLight.withValues(alpha: 0.3),
+        Colors.transparent,
+      ],
+      stops: const [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+      transform: GradientRotation(progress * pi * 2),
+    );
+    
+    gradientPaint.shader = sweepGradient.createShader(rect);
+    canvas.drawPath(extractedPath, gradientPaint);
+
+    // Add glow effect when hovered
+    if (isHovered) {
+      final glowPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 8
+        ..strokeCap = StrokeCap.round
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6)
+        ..color = AppColors.primary.withValues(alpha: 0.4);
+      canvas.drawPath(extractedPath, glowPaint);
+    }
+  }
+
+  Path _extractPathSegment(
+    ui.PathMetric metric, 
+    double start, 
+    double length, 
+    double total,
+  ) {
+    final path = Path();
+    final end = start + length;
+    
+    if (end <= total) {
+      // Simple case: segment doesn't wrap around
+      final extracted = metric.extractPath(start, end);
+      path.addPath(extracted, Offset.zero);
+    } else {
+      // Segment wraps around: draw two parts
+      final firstPart = metric.extractPath(start, total);
+      final secondPart = metric.extractPath(0, end - total);
+      path.addPath(firstPart, Offset.zero);
+      path.addPath(secondPart, Offset.zero);
+    }
+    
+    return path;
+  }
+
+  @override
+  bool shouldRepaint(_CirclingBorderPainter oldDelegate) {
+    return oldDelegate.progress != progress || oldDelegate.isHovered != isHovered;
   }
 }

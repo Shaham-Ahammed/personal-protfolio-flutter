@@ -28,6 +28,9 @@ I love problem solving and breaking down complex challenges into simple, practic
   static const String leetcodeUrl = 'https://leetcode.com/u/Shaham_Ahammed/';
   static const String whatsappUrl =
       'https://wa.me/919961628586'; // WhatsApp with country code
+  
+  // CV/Resume URL - Replace with your actual CV link (Google Drive, Dropbox, or hosted PDF)
+  static const String cvUrl = 'https://drive.google.com/file/d/1mklDo66pfcfw7_bDep3j7xeN2lSdOH90/view?usp=sharing';
 
   // Skills
   static const List<Map<String, dynamic>> skills = [

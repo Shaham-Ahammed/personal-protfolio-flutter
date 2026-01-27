@@ -25,6 +25,10 @@ class _PortfolioScreenState extends State<PortfolioScreen>
   final GlobalKey _contactSectionKey = GlobalKey();
   bool _homeSectionVisible = false;
   
+  // Cursor glow position
+  Offset _cursorPosition = Offset.zero;
+  bool _isCursorInside = false;
+  
   // Callbacks to reset animations
   VoidCallback? _resetAboutAnimations;
   VoidCallback? _resetProjectsAnimations;
@@ -222,69 +226,121 @@ class _PortfolioScreenState extends State<PortfolioScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Show cursor glow only when not on the first page
+    final showCursorGlow = _currentSection != 0 && _isCursorInside;
+    
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          // Main Scrollable Content
-          SingleChildScrollView(
-            controller: _scrollController,
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              children: [
-                SizedBox(
-                  key: _homeSectionKey,
-                  height: MediaQuery.of(context).size.height,
-                  child: const HomeSection(),
-                ),
-                SizedBox(
-                  key: _aboutSectionKey,
-                  child: AboutSection(
-                    onRegisterReset: (resetCallback) {
-                      _resetAboutAnimations = resetCallback;
-                    },
+      body: MouseRegion(
+        onEnter: (_) => setState(() => _isCursorInside = true),
+        onExit: (_) => setState(() => _isCursorInside = false),
+        onHover: (event) {
+          setState(() {
+            _cursorPosition = event.position;
+          });
+        },
+        child: Stack(
+          children: [
+            // Main Scrollable Content
+            SingleChildScrollView(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                children: [
+                  SizedBox(
+                    key: _homeSectionKey,
+                    height: MediaQuery.of(context).size.height,
+                    child: const HomeSection(),
                   ),
-                ),
-                SizedBox(
-                  key: _projectsSectionKey,
-                  child: ProjectsSection(
-                    onRegisterReset: (resetCallback) {
-                      _resetProjectsAnimations = resetCallback;
-                    },
+                  SizedBox(
+                    key: _aboutSectionKey,
+                    child: AboutSection(
+                      onRegisterReset: (resetCallback) {
+                        _resetAboutAnimations = resetCallback;
+                      },
+                    ),
                   ),
-                ),
-                SizedBox(
-                  key: _experienceSectionKey,
-                  child: ExperienceSection(
-                    onRegisterReset: (resetCallback) {
-                      _resetExperienceAnimations = resetCallback;
-                    },
+                  SizedBox(
+                    key: _projectsSectionKey,
+                    child: ProjectsSection(
+                      onRegisterReset: (resetCallback) {
+                        _resetProjectsAnimations = resetCallback;
+                      },
+                    ),
                   ),
-                ),
-                SizedBox(
-                  key: _contactSectionKey,
-                  child: ContactSection(
-                    onRegisterReset: (resetCallback) {
-                      _resetContactAnimations = resetCallback;
-                    },
+                  SizedBox(
+                    key: _experienceSectionKey,
+                    child: ExperienceSection(
+                      onRegisterReset: (resetCallback) {
+                        _resetExperienceAnimations = resetCallback;
+                      },
+                    ),
                   ),
-                ),
-              ],
+                  SizedBox(
+                    key: _contactSectionKey,
+                    child: ContactSection(
+                      onRegisterReset: (resetCallback) {
+                        _resetContactAnimations = resetCallback;
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          // Navigation Bar (Fixed at top)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: PortfolioNavigationBar(
-              currentSection: _currentSection,
-              onSectionTap: _scrollToSection,
+            // Cursor Glow Effect (only visible when not on first page)
+            if (showCursorGlow)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: _CursorGlowPainter(cursorPosition: _cursorPosition),
+                  ),
+                ),
+              ),
+            // Navigation Bar (Fixed at top)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: PortfolioNavigationBar(
+                currentSection: _currentSection,
+                onSectionTap: _scrollToSection,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+}
+
+class _CursorGlowPainter extends CustomPainter {
+  final Offset cursorPosition;
+
+  _CursorGlowPainter({required this.cursorPosition});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const double radius = 120; // Radius of the glow
+    
+    final paint = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          const Color(0xFFA78BFA).withValues(alpha: 0.12),
+          const Color(0xFFC4B5FD).withValues(alpha: 0.07),
+          const Color(0xFFDDD6FE).withValues(alpha: 0.03),
+          Colors.transparent,
+        ],
+        stops: const [0.0, 0.3, 0.6, 1.0],
+      ).createShader(
+        Rect.fromCircle(center: cursorPosition, radius: radius),
+      );
+
+    canvas.drawCircle(cursorPosition, radius, paint);
+  }
+
+  @override
+  bool shouldRepaint(_CursorGlowPainter oldDelegate) {
+    return oldDelegate.cursorPosition != cursorPosition;
   }
 }
 
