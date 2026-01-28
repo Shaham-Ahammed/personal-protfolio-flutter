@@ -19,8 +19,9 @@ class ProjectsSection extends StatefulWidget {
 
 class _ProjectsSectionState extends State<ProjectsSection>
     with WidgetsBindingObserver {
-  // Viewport fraction keeps three cards visible (prev/active/next)
-  late final PageController _mainProjectsController;
+  // Separate controllers for mobile and desktop with different viewport fractions
+  late final PageController _desktopProjectsController;
+  late final PageController _mobileProjectsController;
   int _currentMainProjectIndex = 0;
   final GlobalKey _miniProjectsKey = GlobalKey();
   final GlobalKey<_VisibilityDetectedMainProjectsState> _mainProjectsKey = GlobalKey();
@@ -43,8 +44,15 @@ class _ProjectsSectionState extends State<ProjectsSection>
         ? (1000 ~/ projectsCount) * projectsCount
         : 1000;
 
-    _mainProjectsController = PageController(
+    // Desktop controller with 0.62 viewport fraction (shows 3 cards)
+    _desktopProjectsController = PageController(
       viewportFraction: 0.62,
+      initialPage: initialPage,
+    );
+    
+    // Mobile controller with 0.92 viewport fraction (nearly full width single card)
+    _mobileProjectsController = PageController(
+      viewportFraction: 0.92,
       initialPage: initialPage,
     );
 
@@ -105,7 +113,8 @@ class _ProjectsSectionState extends State<ProjectsSection>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _mainProjectsController.dispose();
+    _desktopProjectsController.dispose();
+    _mobileProjectsController.dispose();
     super.dispose();
   }
 
@@ -246,15 +255,18 @@ class _ProjectsSectionState extends State<ProjectsSection>
     List<Project> projects,
     bool isMobile,
   ) {
+    // Use appropriate controller based on screen size
+    final controller = isMobile ? _mobileProjectsController : _desktopProjectsController;
+    
     // For circular effect, we map page index to project index with modulo.
     return Column(
       children: [
         SizedBox(
-          height: isMobile ? 520 : 460,
+          height: isMobile ? 500 : 460,
           child: Stack(
             children: [
               PageView.builder(
-                controller: _mainProjectsController,
+                controller: controller,
                 onPageChanged: (index) {
                   final realIndex = index % projects.length;
                   setState(() {
@@ -266,28 +278,41 @@ class _ProjectsSectionState extends State<ProjectsSection>
                 itemBuilder: (context, index) {
                   final realIndex = index % projects.length;
                   return AnimatedBuilder(
-                    animation: _mainProjectsController,
+                    animation: controller,
                     builder: (context, child) {
                       double delta = 0.0;
-                      if (_mainProjectsController.position.haveDimensions) {
-                        delta = (_mainProjectsController.page ?? 0) - index;
+                      if (controller.position.haveDimensions) {
+                        delta = (controller.page ?? 0) - index;
                       }
 
                       // Clamp to keep animation stable
                       final clamped = delta.clamp(-1.0, 1.0);
 
-                      // Roller-like curved stack: neighbors curve away, center pops
-                      final rotationY = clamped * 0.9; // stronger curve
-                      // Scale animates with page drag; side cards drop to 0.6, center to 1
-                      final scale = (1 - (clamped.abs() * 0.4)).clamp(0.6, 1.0);
-                      final translateZ =
-                          -80 * clamped.abs(); // curve back slightly
-                      // push side cards outward to avoid overlap
-                      final translateX = clamped * (isMobile ? 30 : 70);
-                      final opacity = 1 - (clamped.abs() * 0.35);
+                      // For mobile, hide side cards completely when fully transitioned
+                      if (isMobile && clamped.abs() > 0.8) {
+                        return const SizedBox.shrink();
+                      }
 
-                      // Hide far items to keep only 3 visible
-                      if (clamped.abs() > 1.2) {
+                      // Roller-like curved stack: neighbors curve away, center pops
+                      final rotationY = clamped * (isMobile ? 0.4 : 0.9);
+                      // Scale animates with page drag
+                      final scale = isMobile 
+                          ? (1 - (clamped.abs() * 0.1)).clamp(0.9, 1.0)
+                          : (1 - (clamped.abs() * 0.4)).clamp(0.6, 1.0);
+                      final translateZ = isMobile
+                          ? -20 * clamped.abs()
+                          : -80 * clamped.abs();
+                      // For mobile, push side cards further out to hide them
+                      final translateX = isMobile
+                          ? clamped * 300
+                          : clamped * 70;
+                      // For mobile, fade out side cards faster
+                      final opacity = isMobile
+                          ? (1 - (clamped.abs() * 2.0)).clamp(0.0, 1.0)
+                          : 1 - (clamped.abs() * 0.35);
+
+                      // Hide far items to keep only 3 visible (desktop only)
+                      if (!isMobile && clamped.abs() > 1.2) {
                         return const SizedBox.shrink();
                       }
 
@@ -304,7 +329,7 @@ class _ProjectsSectionState extends State<ProjectsSection>
                           opacity: opacity,
                           child: Padding(
                             padding: EdgeInsets.symmetric(
-                              horizontal: isMobile ? 12 : 20,
+                              horizontal: isMobile ? 8 : 20,
                               vertical: 12,
                             ),
                             child: _MainProjectCard(
@@ -320,40 +345,42 @@ class _ProjectsSectionState extends State<ProjectsSection>
                   );
                 },
               ),
-              // Navigation Buttons
-              if (!isMobile && projects.length > 1)
+              // Navigation Buttons - show on both mobile and desktop
+              if (projects.length > 1)
                 Positioned(
-                  left: 0,
+                  left: isMobile ? 8 : 0,
                   top: 0,
                   bottom: 0,
                   child: Center(
                     child: _NavigationButton(
                       icon: Icons.arrow_back_ios,
                       onTap: () {
-                        _mainProjectsController.previousPage(
+                        controller.previousPage(
                           duration: const Duration(milliseconds: 400),
                           curve: Curves.easeInOut,
                         );
                       },
                       isEnabled: true,
+                      isSmall: isMobile,
                     ),
                   ),
                 ),
-              if (!isMobile && projects.length > 1)
+              if (projects.length > 1)
                 Positioned(
-                  right: 0,
+                  right: isMobile ? 8 : 0,
                   top: 0,
                   bottom: 0,
                   child: Center(
                     child: _NavigationButton(
                       icon: Icons.arrow_forward_ios,
                       onTap: () {
-                        _mainProjectsController.nextPage(
+                        controller.nextPage(
                           duration: const Duration(milliseconds: 400),
                           curve: Curves.easeInOut,
                         );
                       },
                       isEnabled: true,
+                      isSmall: isMobile,
                     ),
                   ),
                 ),
@@ -885,7 +912,7 @@ class _MainProjectCardState extends State<_MainProjectCard>
             Text(
               widget.project.description,
               style: AppTextStyles.bodyMedium(context),
-              maxLines: widget.isMobile ? 4 : 6,
+              maxLines: widget.isMobile ? 3 : 6,
               overflow: TextOverflow.ellipsis,
             ),
           ],
@@ -1018,11 +1045,13 @@ class _NavigationButton extends StatefulWidget {
   final IconData icon;
   final VoidCallback onTap;
   final bool isEnabled;
+  final bool isSmall;
 
   const _NavigationButton({
     required this.icon,
     required this.onTap,
     required this.isEnabled,
+    this.isSmall = false,
   });
 
   @override
@@ -1051,7 +1080,11 @@ class _NavigationButtonState extends State<_NavigationButton>
 
   @override
   Widget build(BuildContext context) {
+    final buttonSize = widget.isSmall ? 40.0 : 50.0;
+    final iconSize = widget.isSmall ? 16.0 : 20.0;
+
     return MouseRegion(
+      cursor: SystemMouseCursors.click,
       onEnter: (_) {
         if (widget.isEnabled) {
           setState(() => _isHovered = true);
@@ -1070,15 +1103,15 @@ class _NavigationButtonState extends State<_NavigationButton>
             return Transform.scale(
               scale: 1.0 + (_controller.value * 0.1),
               child: Container(
-                width: 50,
-                height: 50,
+                width: buttonSize,
+                height: buttonSize,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: widget.isEnabled && _isHovered
                       ? AppColors.primaryGradient
                       : null,
                   color: widget.isEnabled
-                      ? AppColors.surface.withValues(alpha: 0.8)
+                      ? AppColors.surface.withValues(alpha: 0.9)
                       : AppColors.surface.withValues(alpha: 0.3),
                   border: Border.all(
                     color: widget.isEnabled
@@ -1086,22 +1119,24 @@ class _NavigationButtonState extends State<_NavigationButton>
                         : AppColors.primary.withValues(alpha: 0.2),
                     width: 1.5,
                   ),
-                  boxShadow: widget.isEnabled && _isHovered
+                  boxShadow: widget.isEnabled
                       ? [
                           BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.5),
-                            blurRadius: 15,
-                            spreadRadius: 2,
+                            color: AppColors.primary.withValues(alpha: _isHovered ? 0.5 : 0.3),
+                            blurRadius: _isHovered ? 15 : 8,
+                            spreadRadius: _isHovered ? 2 : 1,
                           ),
                         ]
                       : null,
                 ),
-                child: Icon(
-                  widget.icon,
-                  color: widget.isEnabled
-                      ? AppColors.primaryLight
-                      : AppColors.textTertiary,
-                  size: 20,
+                child: Center(
+                  child: Icon(
+                    widget.icon,
+                    color: widget.isEnabled
+                        ? AppColors.primaryLight
+                        : AppColors.textTertiary,
+                    size: iconSize,
+                  ),
                 ),
               ),
             );
@@ -1328,11 +1363,14 @@ class _MiniProjectCardState extends State<_MiniProjectCard>
     with TickerProviderStateMixin {
   bool _isHovered = false;
   bool _imageLoadedSuccessfully = false;
+  bool _isExpanded = false; // For mobile tap-to-expand description
   late AnimationController _hoverController;
   late AnimationController _imageScrollController;
+  late AnimationController _expandController;
   late Animation<double> _projectionAnimation;
   late Animation<double> _glowAnimation;
   late Animation<double> _imageScrollAnimation;
+  late Animation<double> _expandAnimation;
   Offset _mousePosition = Offset.zero;
 
   @override
@@ -1362,6 +1400,16 @@ class _MiniProjectCardState extends State<_MiniProjectCard>
       ),
     );
     
+    // Expand animation controller for mobile tap-to-expand
+    _expandController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _expandAnimation = CurvedAnimation(
+      parent: _expandController,
+      curve: Curves.easeOutCubic,
+    );
+    
     // Initialize mouse position to center
     final cardWidth = widget.isMobile ? 300.0 : 340.0;
     final cardHeight = widget.isMobile ? 360.0 : 400.0;
@@ -1375,7 +1423,20 @@ class _MiniProjectCardState extends State<_MiniProjectCard>
   void dispose() {
     _hoverController.dispose();
     _imageScrollController.dispose();
+    _expandController.dispose();
     super.dispose();
+  }
+  
+  void _toggleExpand() {
+    if (!widget.isMobile) return;
+    setState(() {
+      _isExpanded = !_isExpanded;
+      if (_isExpanded) {
+        _expandController.forward();
+      } else {
+        _expandController.reverse();
+      }
+    });
   }
 
   void _onHover(bool hover) {
@@ -1424,12 +1485,14 @@ class _MiniProjectCardState extends State<_MiniProjectCard>
   Widget build(BuildContext context) {
     return Listener(
       onPointerMove: _onHoverMove,
-      child: MouseRegion(
-        onEnter: (_) => _onHover(true),
-        onExit: (_) => _onHover(false),
-        child: AnimatedBuilder(
-          animation: _hoverController,
-          builder: (context, child) {
+      child: GestureDetector(
+        onTap: widget.isMobile ? _toggleExpand : null,
+        child: MouseRegion(
+          onEnter: (_) => _onHover(true),
+          onExit: (_) => _onHover(false),
+          child: AnimatedBuilder(
+            animation: Listenable.merge([_hoverController, _expandController]),
+            builder: (context, child) {
             // Calculate 3D projection based on mouse position
             final cardWidth = widget.isMobile ? 300.0 : 340.0;
             final cardHeight = widget.isMobile ? 360.0 : 400.0;
@@ -1633,14 +1696,21 @@ class _MiniProjectCardState extends State<_MiniProjectCard>
                 ),
               ),
             ),
-            // Glass morphism card content
-            Positioned.fill(
+            // Glass morphism card content - expandable upward on mobile
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              // When expanded on mobile, top is 40 (near top), otherwise 130 (shows image)
+              top: (widget.isMobile && _isExpanded) ? 40 : 130,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Title area with glass background
                   Container(
-                    padding: const EdgeInsets.fromLTRB(20, 130, 20, 16),
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: BackdropFilter(
@@ -1658,15 +1728,28 @@ class _MiniProjectCardState extends State<_MiniProjectCard>
                               width: 1,
                             ),
                           ),
-                          child: Text(
-                            widget.project.title,
-                            style: AppTextStyles.heading4(context).copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  widget.project.title,
+                                  style: AppTextStyles.heading4(context).copyWith(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              // Show expand/collapse icon on mobile
+                              if (widget.isMobile)
+                                Icon(
+                                  _isExpanded ? Icons.expand_less : Icons.expand_more,
+                                  color: AppColors.primaryLight,
+                                  size: 20,
+                                ),
+                            ],
                           ),
                         ),
                       ),
@@ -1705,14 +1788,22 @@ class _MiniProjectCardState extends State<_MiniProjectCard>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // Description - shows more when expanded on mobile
                               Expanded(
-                                child: Text(
-                                  widget.project.description,
-                                  style: AppTextStyles.bodySmall(context).copyWith(
-                                    color: AppColors.textSecondary,
+                                child: SingleChildScrollView(
+                                  physics: (widget.isMobile && _isExpanded) 
+                                      ? const AlwaysScrollableScrollPhysics()
+                                      : const NeverScrollableScrollPhysics(),
+                                  child: Text(
+                                    widget.project.description,
+                                    style: AppTextStyles.bodySmall(context).copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                    maxLines: (widget.isMobile && _isExpanded) ? null : 3,
+                                    overflow: (widget.isMobile && _isExpanded) 
+                                        ? TextOverflow.visible 
+                                        : TextOverflow.ellipsis,
                                   ),
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -1859,8 +1950,9 @@ class _MiniProjectCardState extends State<_MiniProjectCard>
                 ),
               ),
             ),
-          );
-          },
+            );
+            },
+          ),
         ),
       ),
     );
