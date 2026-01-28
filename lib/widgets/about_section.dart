@@ -10,8 +10,13 @@ import '../constants/portfolio_data.dart';
 
 class AboutSection extends StatefulWidget {
   final Function(VoidCallback)? onRegisterReset;
+  final bool isFirstStackingSection;
 
-  const AboutSection({super.key, this.onRegisterReset});
+  const AboutSection({
+    super.key,
+    this.onRegisterReset,
+    this.isFirstStackingSection = false,
+  });
 
   @override
   State<AboutSection> createState() => _AboutSectionState();
@@ -105,10 +110,55 @@ class _AboutSectionState extends State<AboutSection>
       child: Container(
         width: double.infinity,
         constraints: BoxConstraints(minHeight: size.height),
-        color: AppColors.backgroundLight,
-        padding: EdgeInsets.symmetric(
-          horizontal: isMobile ? 20 : 60,
-          vertical: isMobile ? 60 : 100,
+        decoration: BoxDecoration(
+          color: AppColors.backgroundLight,
+          // Stacking effect: rounded top corners and deep shadows
+          borderRadius: widget.isFirstStackingSection
+              ? const BorderRadius.only(
+                  topLeft: Radius.circular(42),
+                  topRight: Radius.circular(42),
+                )
+              : null,
+          boxShadow: widget.isFirstStackingSection
+              ? [
+                  // Outermost shadow - very soft, wide spread
+                  BoxShadow(
+                    color: const Color(0xFF000000).withValues(alpha: 0.6),
+                    blurRadius: 80,
+                    spreadRadius: 10,
+                    offset: const Offset(0, -25),
+                  ),
+                  // Deep shadow for strong lift effect
+                  BoxShadow(
+                    color: const Color(0xFF1A1A2E).withValues(alpha: 0.7),
+                    blurRadius: 50,
+                    spreadRadius: 5,
+                    offset: const Offset(0, -15),
+                  ),
+                  // Mid shadow for depth
+                  BoxShadow(
+                    color: const Color(0xFF16213E).withValues(alpha: 0.5),
+                    blurRadius: 30,
+                    spreadRadius: 0,
+                    offset: const Offset(0, -8),
+                  ),
+                  // Close shadow for edge definition
+                  BoxShadow(
+                    color: const Color(0xFF0F0F1A).withValues(alpha: 0.8),
+                    blurRadius: 15,
+                    spreadRadius: 0,
+                    offset: const Offset(0, -3),
+                  ),
+                ]
+              : null,
+        ),
+        padding: EdgeInsets.only(
+          left: isMobile ? 20 : 60,
+          right: isMobile ? 20 : 60,
+          top: widget.isFirstStackingSection
+              ? (isMobile ? 80 : 100)
+              : (isMobile ? 60 : 100),
+          bottom: isMobile ? 60 : 100,
         ),
         child: AnimatedBuilder(
           animation: _flareController,

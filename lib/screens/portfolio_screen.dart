@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../widgets/navigation_bar.dart';
 import '../widgets/home_section.dart';
@@ -34,6 +35,9 @@ class _PortfolioScreenState extends State<PortfolioScreen>
   VoidCallback? _resetProjectsAnimations;
   VoidCallback? _resetExperienceAnimations;
   VoidCallback? _resetContactAnimations;
+  
+  // Auto-scroll snap variables
+  bool _isAutoScrolling = false;
 
   @override
   void initState() {
@@ -131,20 +135,71 @@ class _PortfolioScreenState extends State<PortfolioScreen>
       }
     });
   }
+  
+  /// Called when user stops scrolling - triggers snap if needed
+  void _onScrollEnd() {
+    if (_isAutoScrolling || !_scrollController.hasClients) return;
+    
+    final scrollOffset = _scrollController.offset;
+    final screenHeight = MediaQuery.of(context).size.height;
+    
+    // Only apply snap between Home and About sections
+    if (scrollOffset > 0 && scrollOffset < screenHeight) {
+      final snapThreshold = 0.3; // 30% visibility triggers snap
+      
+      // If scrolled more than 70% (Home only 30% visible), snap to About
+      if (scrollOffset >= screenHeight * (1 - snapThreshold)) {
+        _snapToOffset(screenHeight);
+      }
+      // If scrolled less than 30% (About only 30% visible), snap to Home
+      else if (scrollOffset <= screenHeight * snapThreshold) {
+        _snapToOffset(0);
+      }
+      // In between (30% to 70%), snap to the closer section
+      else if (scrollOffset >= screenHeight * 0.5) {
+        _snapToOffset(screenHeight);
+      } else {
+        _snapToOffset(0);
+      }
+    }
+  }
+  
+  void _snapToOffset(double targetOffset) {
+    if (_isAutoScrolling) return;
+    
+    _isAutoScrolling = true;
+    _scrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOutCubic,
+    ).then((_) {
+      if (mounted) {
+        _isAutoScrolling = false;
+      }
+    });
+  }
 
   int _calculateCurrentSection() {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final scrollOffset = _scrollController.hasClients ? _scrollController.offset : 0.0;
+    
+    // Home section is fixed, so check scroll offset first
+    // If we haven't scrolled past the home section height, we're on home
+    if (scrollOffset < screenHeight * 0.5) {
+      return 0; // Home section
+    }
+    
+    // For other sections, calculate based on their position in the scroll view
     final sectionKeys = [
-      _homeSectionKey,
       _aboutSectionKey,
       _projectsSectionKey,
       _experienceSectionKey,
       _contactSectionKey,
     ];
 
-    final screenHeight = MediaQuery.of(context).size.height;
     final viewportCenter = screenHeight / 2;
     
-    int closestSection = 0;
+    int closestSection = 1; // Default to About section
     double closestDistance = double.infinity;
 
     for (int i = 0; i < sectionKeys.length; i++) {
@@ -166,7 +221,7 @@ class _PortfolioScreenState extends State<PortfolioScreen>
         
         if (distance < closestDistance) {
           closestDistance = distance;
-          closestSection = i;
+          closestSection = i + 1; // +1 because index 0 is Home
         }
       } catch (e) {
         // Silently handle errors
@@ -228,6 +283,50 @@ class _PortfolioScreenState extends State<PortfolioScreen>
   Widget build(BuildContext context) {
     // Show cursor glow only when not on the first page
     final showCursorGlow = _currentSection != 0 && _isCursorInside;
+    final screenHeight = MediaQuery.of(context).size.height;
+    
+    // Define the two categories
+    final homeSection = SizedBox(
+      key: _homeSectionKey,
+      height: screenHeight,
+      child: const HomeSection(),
+    );
+    
+    final stackingSections = [
+      SizedBox(
+        key: _aboutSectionKey,
+        child: AboutSection(
+          onRegisterReset: (resetCallback) {
+            _resetAboutAnimations = resetCallback;
+          },
+          isFirstStackingSection: true,
+        ),
+      ),
+      SizedBox(
+        key: _projectsSectionKey,
+        child: ProjectsSection(
+          onRegisterReset: (resetCallback) {
+            _resetProjectsAnimations = resetCallback;
+          },
+        ),
+      ),
+      SizedBox(
+        key: _experienceSectionKey,
+        child: ExperienceSection(
+          onRegisterReset: (resetCallback) {
+            _resetExperienceAnimations = resetCallback;
+          },
+        ),
+      ),
+      SizedBox(
+        key: _contactSectionKey,
+        child: ContactSection(
+          onRegisterReset: (resetCallback) {
+            _resetContactAnimations = resetCallback;
+          },
+        ),
+      ),
+    ];
     
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -241,52 +340,28 @@ class _PortfolioScreenState extends State<PortfolioScreen>
         },
         child: Stack(
           children: [
-            // Main Scrollable Content
-            SingleChildScrollView(
-              controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                children: [
-                  SizedBox(
-                    key: _homeSectionKey,
-                    height: MediaQuery.of(context).size.height,
-                    child: const HomeSection(),
-                  ),
-                  SizedBox(
-                    key: _aboutSectionKey,
-                    child: AboutSection(
-                      onRegisterReset: (resetCallback) {
-                        _resetAboutAnimations = resetCallback;
-                      },
-                    ),
-                  ),
-                  SizedBox(
-                    key: _projectsSectionKey,
-                    child: ProjectsSection(
-                      onRegisterReset: (resetCallback) {
-                        _resetProjectsAnimations = resetCallback;
-                      },
-                    ),
-                  ),
-                  SizedBox(
-                    key: _experienceSectionKey,
-                    child: ExperienceSection(
-                      onRegisterReset: (resetCallback) {
-                        _resetExperienceAnimations = resetCallback;
-                      },
-                    ),
-                  ),
-                  SizedBox(
-                    key: _contactSectionKey,
-                    child: ContactSection(
-                      onRegisterReset: (resetCallback) {
-                        _resetContactAnimations = resetCallback;
-                      },
-                    ),
-                  ),
-                ],
+            // ===== CATEGORY 1: Home Section (Fixed at back) =====
+            // Wrapped with scroll gesture handling so scrolling works from Home
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: screenHeight,
+              child: _ScrollableHomeSection(
+                scrollController: _scrollController,
+                onScrollEnd: _onScrollEnd,
+                child: homeSection,
               ),
             ),
+            
+            // ===== CATEGORY 2: Stacking Sections (Scroll over home) =====
+            _StackingSectionsScrollView(
+              scrollController: _scrollController,
+              spacerHeight: screenHeight,
+              sections: stackingSections,
+              onScrollEnd: _onScrollEnd,
+            ),
+            
             // Cursor Glow Effect (only visible when not on first page)
             if (showCursorGlow)
               Positioned.fill(
@@ -307,6 +382,170 @@ class _PortfolioScreenState extends State<PortfolioScreen>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Wraps the Home section to handle scroll gestures (mouse wheel & touch)
+/// while allowing all other interactions to pass through to child widgets.
+/// Uses raw pointer events which don't compete in the gesture arena.
+class _ScrollableHomeSection extends StatefulWidget {
+  final ScrollController scrollController;
+  final VoidCallback? onScrollEnd;
+  final Widget child;
+
+  const _ScrollableHomeSection({
+    required this.scrollController,
+    this.onScrollEnd,
+    required this.child,
+  });
+
+  @override
+  State<_ScrollableHomeSection> createState() => _ScrollableHomeSectionState();
+}
+
+class _ScrollableHomeSectionState extends State<_ScrollableHomeSection> {
+  // Track active pointers for touch scrolling
+  final Map<int, Offset> _pointerPositions = {};
+  bool _hasScrolled = false;
+  
+  void _handleScroll(double delta) {
+    if (!widget.scrollController.hasClients) return;
+    _hasScrolled = true;
+    
+    final maxExtent = widget.scrollController.position.maxScrollExtent;
+    final newOffset = widget.scrollController.offset + delta;
+    widget.scrollController.jumpTo(newOffset.clamp(0.0, maxExtent));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      // Mouse wheel scrolling
+      onPointerSignal: (event) {
+        if (event is PointerScrollEvent) {
+          _handleScroll(event.scrollDelta.dy);
+          // Trigger scroll end after a short delay for mouse wheel
+          Future.delayed(const Duration(milliseconds: 200), () {
+            if (_hasScrolled) {
+              _hasScrolled = false;
+              widget.onScrollEnd?.call();
+            }
+          });
+        }
+      },
+      // Track touch pointer positions for scrolling
+      onPointerDown: (event) {
+        _pointerPositions[event.pointer] = event.position;
+      },
+      onPointerMove: (event) {
+        final lastPosition = _pointerPositions[event.pointer];
+        if (lastPosition != null) {
+          final delta = event.position - lastPosition;
+          // Only scroll if primarily vertical movement
+          if (delta.dy.abs() > delta.dx.abs() && delta.dy.abs() > 2) {
+            _handleScroll(-delta.dy);
+          }
+          _pointerPositions[event.pointer] = event.position;
+        }
+      },
+      onPointerUp: (event) {
+        _pointerPositions.remove(event.pointer);
+        // Trigger scroll end when user lifts finger
+        if (_hasScrolled && _pointerPositions.isEmpty) {
+          _hasScrolled = false;
+          widget.onScrollEnd?.call();
+        }
+      },
+      onPointerCancel: (event) {
+        _pointerPositions.remove(event.pointer);
+        if (_hasScrolled && _pointerPositions.isEmpty) {
+          _hasScrolled = false;
+          widget.onScrollEnd?.call();
+        }
+      },
+      // Child receives all events - Listener doesn't block anything
+      child: widget.child,
+    );
+  }
+}
+
+/// Scroll view for stacking sections with a transparent spacer area.
+/// Uses AbsorbPointer to block events in the spacer area so Home section
+/// can receive them, while allowing events through to sections.
+class _StackingSectionsScrollView extends StatefulWidget {
+  final ScrollController scrollController;
+  final double spacerHeight;
+  final List<Widget> sections;
+  final VoidCallback? onScrollEnd;
+
+  const _StackingSectionsScrollView({
+    required this.scrollController,
+    required this.spacerHeight,
+    required this.sections,
+    this.onScrollEnd,
+  });
+
+  @override
+  State<_StackingSectionsScrollView> createState() => _StackingSectionsScrollViewState();
+}
+
+class _StackingSectionsScrollViewState extends State<_StackingSectionsScrollView> {
+  double _scrollOffset = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (mounted) {
+      setState(() {
+        _scrollOffset = widget.scrollController.offset;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.scrollController.removeListener(_onScroll);
+    super.dispose();
+  }
+  
+  bool _onScrollNotification(ScrollNotification notification) {
+    if (notification is ScrollEndNotification) {
+      widget.onScrollEnd?.call();
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // When we're in the spacer area (showing Home section),
+    // ignore ALL pointer events so they pass through to Home section.
+    // Only become interactive when sections are visible.
+    final isInSpacerArea = _scrollOffset < widget.spacerHeight;
+
+    return IgnorePointer(
+      // Ignore events when in spacer area - lets Home section receive them
+      ignoring: isInSpacerArea,
+      child: NotificationListener<ScrollNotification>(
+        onNotification: _onScrollNotification,
+        child: SingleChildScrollView(
+          controller: widget.scrollController,
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            children: [
+              // Spacer for home section
+              SizedBox(height: widget.spacerHeight),
+              // Stacking sections
+              ...widget.sections,
+            ],
+          ),
         ),
       ),
     );
