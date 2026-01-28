@@ -96,7 +96,7 @@ class _ContactSectionState extends State<ContactSection>
       final Uri emailUri = Uri(
         scheme: 'mailto',
         path: 'shahamahammed66@gmail.com',
-        queryParameters: {'subject': name, 'body': message},
+        queryParameters: {'subject': 'name: $name', 'body': message},
       );
 
       if (await canLaunchUrl(emailUri)) {
@@ -222,6 +222,8 @@ class _ContactSectionState extends State<ContactSection>
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isMobile = size.width < 768;
+    // Get keyboard height for bottom padding on mobile
+    final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
 
     return Container(
       width: double.infinity,
@@ -242,13 +244,16 @@ class _ContactSectionState extends State<ContactSection>
               height:kIsWeb? 320: 430, // Approximate form height
               child: CustomPaint(painter: _MobileFormBackgroundPainter()),
             ),
-          // Content
-          Padding(
+          // Content - Use AnimatedPadding for smooth keyboard transitions
+          AnimatedPadding(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
             padding: EdgeInsets.only(
               left: isMobile ? 20 : 60,
               right: isMobile ? 20 : 60,
               top: isMobile ? 60 : 100,
-              bottom: isMobile ? 40 : 60,
+              // Add keyboard height to bottom padding on mobile
+              bottom: isMobile ? 40 + keyboardHeight : 60,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,8 +331,8 @@ class _ContactSectionState extends State<ContactSection>
   }
 
   Widget _buildMobileLayout(BuildContext context) {
-    // Check if it's a real mobile device (not web)
-    final isRealMobile = !kIsWeb;
+    // Always show expanded tiles in mobile view
+    const isRealMobile = true;
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

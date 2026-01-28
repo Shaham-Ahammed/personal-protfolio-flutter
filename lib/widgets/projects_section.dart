@@ -10,7 +10,7 @@ import '../models/project_model.dart';
 
 class ProjectsSection extends StatefulWidget {
   final Function(VoidCallback)? onRegisterReset;
-  
+
   const ProjectsSection({super.key, this.onRegisterReset});
 
   @override
@@ -24,7 +24,8 @@ class _ProjectsSectionState extends State<ProjectsSection>
   late final PageController _mobileProjectsController;
   int _currentMainProjectIndex = 0;
   final GlobalKey _miniProjectsKey = GlobalKey();
-  final GlobalKey<_VisibilityDetectedMainProjectsState> _mainProjectsKey = GlobalKey();
+  final GlobalKey<_VisibilityDetectedMainProjectsState> _mainProjectsKey =
+      GlobalKey();
   bool _miniProjectsAnimated = false;
   int _miniProjectsResetKey = 0; // Key to force rebuild of mini projects
 
@@ -49,7 +50,7 @@ class _ProjectsSectionState extends State<ProjectsSection>
       viewportFraction: 0.62,
       initialPage: initialPage,
     );
-    
+
     // Mobile controller with 0.92 viewport fraction (nearly full width single card)
     _mobileProjectsController = PageController(
       viewportFraction: 0.92,
@@ -67,10 +68,10 @@ class _ProjectsSectionState extends State<ProjectsSection>
       _checkMiniProjectsVisibility();
       _startPeriodicVisibilityCheck();
     });
-    
+
     // Add observer to check visibility when app resumes
     WidgetsBinding.instance.addObserver(this);
-    
+
     // Register reset callback with parent
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && widget.onRegisterReset != null) {
@@ -78,21 +79,21 @@ class _ProjectsSectionState extends State<ProjectsSection>
       }
     });
   }
-  
+
   void resetAnimations() {
     // Reset main projects fade animation
     final mainProjectsState = _mainProjectsKey.currentState;
     if (mainProjectsState != null) {
       mainProjectsState.resetAnimation();
     }
-    
+
     // Reset mini projects slide animation
     setState(() {
       _miniProjectsAnimated = false;
       _miniProjectsResetKey++; // Force rebuild of mini projects
     });
   }
-  
+
   void _startPeriodicVisibilityCheck() {
     // Check visibility periodically (every 100ms) continuously
     Future.delayed(const Duration(milliseconds: 100), () {
@@ -102,7 +103,7 @@ class _ProjectsSectionState extends State<ProjectsSection>
       }
     });
   }
-  
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
@@ -132,11 +133,11 @@ class _ProjectsSectionState extends State<ProjectsSection>
     try {
       final position = renderBox.localToGlobal(Offset.zero);
       final widgetSize = renderBox.size;
-      
+
       // Get screen size and viewport info
       final screenSize = MediaQuery.of(context).size;
       final screenHeight = screenSize.height;
-      
+
       // Account for any app bars or padding at the top
       final viewportTop = 0.0; // Top of visible screen
       final viewportBottom = screenHeight; // Bottom of visible screen
@@ -148,19 +149,24 @@ class _ProjectsSectionState extends State<ProjectsSection>
       // Calculate how much of the widget is visible in the viewport
       final visibleTop = widgetTop.clamp(viewportTop, viewportBottom);
       final visibleBottom = widgetBottom.clamp(viewportTop, viewportBottom);
-      final visibleHeight = (visibleBottom - visibleTop).clamp(0.0, widgetSize.height);
+      final visibleHeight = (visibleBottom - visibleTop).clamp(
+        0.0,
+        widgetSize.height,
+      );
 
       // Check if 70% of the widget is visible
       if (widgetSize.height > 0) {
         final visibilityPercentage = visibleHeight / widgetSize.height;
-        
+
         // Also check if widget is at least partially in viewport
-        final isInViewport = widgetBottom > viewportTop && widgetTop < viewportBottom;
+        final isInViewport =
+            widgetBottom > viewportTop && widgetTop < viewportBottom;
         final shouldBeAnimated = isInViewport && visibilityPercentage >= 0.7;
-        
+
         // Check if widget is completely out of view (100% not visible)
-        final isCompletelyOutOfView = widgetBottom <= viewportTop || widgetTop >= viewportBottom;
-        
+        final isCompletelyOutOfView =
+            widgetBottom <= viewportTop || widgetTop >= viewportBottom;
+
         // Update animation state based on visibility
         if (shouldBeAnimated && !_miniProjectsAnimated && mounted) {
           // Section became 70% visible - trigger animation
@@ -233,7 +239,11 @@ class _ProjectsSectionState extends State<ProjectsSection>
             if (mainProjects.isNotEmpty) ...[
               _VisibilityDetectedMainProjects(
                 key: _mainProjectsKey,
-                child: _buildMainProjectsCarousel(context, mainProjects, isMobile),
+                child: _buildMainProjectsCarousel(
+                  context,
+                  mainProjects,
+                  isMobile,
+                ),
               ),
               const SizedBox(height: 80),
             ],
@@ -256,8 +266,10 @@ class _ProjectsSectionState extends State<ProjectsSection>
     bool isMobile,
   ) {
     // Use appropriate controller based on screen size
-    final controller = isMobile ? _mobileProjectsController : _desktopProjectsController;
-    
+    final controller = isMobile
+        ? _mobileProjectsController
+        : _desktopProjectsController;
+
     // For circular effect, we map page index to project index with modulo.
     return Column(
       children: [
@@ -296,7 +308,7 @@ class _ProjectsSectionState extends State<ProjectsSection>
                       // Roller-like curved stack: neighbors curve away, center pops
                       final rotationY = clamped * (isMobile ? 0.4 : 0.9);
                       // Scale animates with page drag
-                      final scale = isMobile 
+                      final scale = isMobile
                           ? (1 - (clamped.abs() * 0.1)).clamp(0.9, 1.0)
                           : (1 - (clamped.abs() * 0.4)).clamp(0.6, 1.0);
                       final translateZ = isMobile
@@ -445,7 +457,9 @@ class _ProjectsSectionState extends State<ProjectsSection>
               right: index < projects.length - 1 ? 24 : 0,
             ),
             child: _AnimatedMiniProjectCard(
-              key: ValueKey('mini_${_miniProjectsResetKey}_$index'), // Unique key per reset
+              key: ValueKey(
+                'mini_${_miniProjectsResetKey}_$index',
+              ), // Unique key per reset
               project: projects[index],
               isMobile: isMobile,
               index: index,
@@ -461,10 +475,7 @@ class _ProjectsSectionState extends State<ProjectsSection>
 class _VisibilityDetectedMainProjects extends StatefulWidget {
   final Widget child;
 
-  const _VisibilityDetectedMainProjects({
-    super.key,
-    required this.child,
-  });
+  const _VisibilityDetectedMainProjects({super.key, required this.child});
 
   @override
   State<_VisibilityDetectedMainProjects> createState() =>
@@ -483,25 +494,22 @@ class _VisibilityDetectedMainProjectsState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    
+
     // Initialize fade animation controller
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    
+
     // Fade animation from 0 to 1
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeIn,
-    ));
-    
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeIn));
+
     // Start with opacity at 0 (invisible)
     _fadeController.value = 0.0;
-    
+
     // Check visibility after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 300), () {
@@ -571,12 +579,17 @@ class _VisibilityDetectedMainProjectsState
 
       final visibleTop = widgetTop.clamp(viewportTop, viewportBottom);
       final visibleBottom = widgetBottom.clamp(viewportTop, viewportBottom);
-      final visibleHeight = (visibleBottom - visibleTop).clamp(0.0, widgetSize.height);
+      final visibleHeight = (visibleBottom - visibleTop).clamp(
+        0.0,
+        widgetSize.height,
+      );
 
       if (widgetSize.height > 0) {
         final visibilityPercentage = visibleHeight / widgetSize.height;
-        final isInViewport = widgetBottom > viewportTop && widgetTop < viewportBottom;
-        final shouldFadeIn = isInViewport && visibilityPercentage >= 0.70; // 70% threshold
+        final isInViewport =
+            widgetBottom > viewportTop && widgetTop < viewportBottom;
+        final shouldFadeIn =
+            isInViewport && visibilityPercentage >= 0.70; // 70% threshold
 
         if (shouldFadeIn && !_hasAnimated && mounted) {
           setState(() {
@@ -607,10 +620,7 @@ class _VisibilityDetectedMainProjectsState
       },
       child: FadeTransition(
         opacity: _fadeAnimation,
-        child: Container(
-          key: _widgetKey,
-          child: widget.child,
-        ),
+        child: Container(key: _widgetKey, child: widget.child),
       ),
     );
   }
@@ -1122,7 +1132,9 @@ class _NavigationButtonState extends State<_NavigationButton>
                   boxShadow: widget.isEnabled
                       ? [
                           BoxShadow(
-                            color: AppColors.primary.withValues(alpha: _isHovered ? 0.5 : 0.3),
+                            color: AppColors.primary.withValues(
+                              alpha: _isHovered ? 0.5 : 0.3,
+                            ),
                             blurRadius: _isHovered ? 15 : 8,
                             spreadRadius: _isHovered ? 2 : 1,
                           ),
@@ -1187,87 +1199,85 @@ class _AnimatedMiniProjectCardState extends State<_AnimatedMiniProjectCard>
     // Calculate staggered delay - each card starts 0.1 seconds (100ms) after the previous
     // Convert to fraction of total duration (1800ms)
     final delaySeconds = widget.index * 0.1;
-    final animationDurationSeconds = 0.8; // Increased duration for bounce effect
+    final animationDurationSeconds =
+        0.8; // Increased duration for bounce effect
     final totalDurationSeconds = 1.8;
-    
+
     final delayFraction = (delaySeconds / totalDurationSeconds).clamp(0.0, 1.0);
-    final endFraction = ((delaySeconds + animationDurationSeconds) / totalDurationSeconds).clamp(0.0, 1.0);
-    
+    final endFraction =
+        ((delaySeconds + animationDurationSeconds) / totalDurationSeconds)
+            .clamp(0.0, 1.0);
+
     // Slide animation with overshoot: from left (-200) to overshoot (20) then back to (0)
-    _slideAnimation = TweenSequence<double>([
-      // First phase: slide from -200 to 20 (overshoot forward)
-      TweenSequenceItem(
-        tween: Tween<double>(begin: -200.0, end: 20.0)
-            .chain(CurveTween(curve: Curves.easeOutCubic)),
-        weight: 70.0, // 70% of animation time
-      ),
-      // Second phase: settle back to 0 (final position)
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 20.0, end: 0.0)
-            .chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 30.0, // 30% of animation time
-      ),
-    ]).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Interval(
-          delayFraction,
-          endFraction,
-          curve: Curves.linear,
-        ),
-      ),
-    );
+    _slideAnimation =
+        TweenSequence<double>([
+          // First phase: slide from -200 to 20 (overshoot forward)
+          TweenSequenceItem(
+            tween: Tween<double>(
+              begin: -200.0,
+              end: 20.0,
+            ).chain(CurveTween(curve: Curves.easeOutCubic)),
+            weight: 70.0, // 70% of animation time
+          ),
+          // Second phase: settle back to 0 (final position)
+          TweenSequenceItem(
+            tween: Tween<double>(
+              begin: 20.0,
+              end: 0.0,
+            ).chain(CurveTween(curve: Curves.easeInOut)),
+            weight: 30.0, // 30% of animation time
+          ),
+        ]).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: Interval(delayFraction, endFraction, curve: Curves.linear),
+          ),
+        );
 
     // Forward animation (scale/translateZ effect) - goes forward then back
-    _forwardAnimation = TweenSequence<double>([
-      // First phase: move forward (scale up or translateZ forward)
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 0.0, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeOutCubic)),
-        weight: 70.0,
-      ),
-      // Second phase: settle back to original position
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 0.0)
-            .chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 30.0,
-      ),
-    ]).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Interval(
-          delayFraction,
-          endFraction,
-          curve: Curves.linear,
-        ),
-      ),
-    );
+    _forwardAnimation =
+        TweenSequence<double>([
+          // First phase: move forward (scale up or translateZ forward)
+          TweenSequenceItem(
+            tween: Tween<double>(
+              begin: 0.0,
+              end: 1.0,
+            ).chain(CurveTween(curve: Curves.easeOutCubic)),
+            weight: 70.0,
+          ),
+          // Second phase: settle back to original position
+          TweenSequenceItem(
+            tween: Tween<double>(
+              begin: 1.0,
+              end: 0.0,
+            ).chain(CurveTween(curve: Curves.easeInOut)),
+            weight: 30.0,
+          ),
+        ]).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: Interval(delayFraction, endFraction, curve: Curves.linear),
+          ),
+        );
 
     // Opacity animation
-    _opacityAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(
+    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: Interval(
-          delayFraction,
-          endFraction,
-          curve: Curves.easeOut,
-        ),
+        curve: Interval(delayFraction, endFraction, curve: Curves.easeOut),
       ),
     );
 
     // Always start with controller at 0 (invisible/hidden state)
     _controller.value = 0.0;
-    
+
     // Mark as animated when animation completes
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         _hasAnimated = true;
       }
     });
-    
+
     // If shouldAnimate is true and hasn't animated yet, start animation
     if (widget.shouldAnimate && !_hasAnimated) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1282,7 +1292,7 @@ class _AnimatedMiniProjectCardState extends State<_AnimatedMiniProjectCard>
   @override
   void didUpdateWidget(_AnimatedMiniProjectCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     if (widget.shouldAnimate && !oldWidget.shouldAnimate && !_hasAnimated) {
       // Section became visible - start animation only if not already played
       _hasAnimated = true;
@@ -1308,7 +1318,7 @@ class _AnimatedMiniProjectCardState extends State<_AnimatedMiniProjectCard>
         double slideValue = -200.0; // Start hidden
         double opacityValue = 0.0; // Start invisible
         double forwardValue = 0.0; // Forward effect value
-        
+
         try {
           slideValue = _slideAnimation.value;
           opacityValue = _opacityAnimation.value;
@@ -1319,23 +1329,23 @@ class _AnimatedMiniProjectCardState extends State<_AnimatedMiniProjectCard>
           opacityValue = 0.0;
           forwardValue = 0.0;
         }
-        
+
         // Clamp values to valid ranges
         slideValue = slideValue.clamp(-200.0, 20.0); // Allow overshoot
         opacityValue = opacityValue.clamp(0.0, 1.0);
         forwardValue = forwardValue.clamp(0.0, 1.0);
-        
+
         // Calculate forward effect: scale up slightly and translate forward in Z
         final scale = 1.0 + (forwardValue * 0.08); // Scale up to 1.08
         final translateZ = forwardValue * 30.0; // Move forward 30 pixels in Z
-        
+
         return Transform(
           alignment: Alignment.center,
           transform: Matrix4.identity()
             ..setEntry(3, 2, 0.001) // Perspective
-            ..translate(slideValue, 0.0)
+            ..translateByVector3(Vector3(slideValue, 0.0, 0.0))
             ..translateByVector3(Vector3(0.0, 0.0, translateZ))
-            ..scale(scale),
+            ..scaleByVector3(Vector3(scale, scale, scale)),
           child: Opacity(
             opacity: opacityValue,
             child: _MiniProjectCard(
@@ -1370,7 +1380,6 @@ class _MiniProjectCardState extends State<_MiniProjectCard>
   late Animation<double> _projectionAnimation;
   late Animation<double> _glowAnimation;
   late Animation<double> _imageScrollAnimation;
-  late Animation<double> _expandAnimation;
   Offset _mousePosition = Offset.zero;
 
   @override
@@ -1383,10 +1392,11 @@ class _MiniProjectCardState extends State<_MiniProjectCard>
     _projectionAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _hoverController, curve: Curves.easeOutCubic),
     );
-    _glowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _hoverController, curve: Curves.easeOut),
-    );
-    
+    _glowAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _hoverController, curve: Curves.easeOut));
+
     // Image scroll animation controller - loops back and forth
     _imageScrollController = AnimationController(
       vsync: this,
@@ -1394,27 +1404,20 @@ class _MiniProjectCardState extends State<_MiniProjectCard>
     );
     // Animation that goes from 0 to 1 (up) and back to 0 (down) in a loop
     _imageScrollAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _imageScrollController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _imageScrollController, curve: Curves.easeInOut),
     );
-    
+
     // Expand animation controller for mobile tap-to-expand
     _expandController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _expandAnimation = CurvedAnimation(
-      parent: _expandController,
-      curve: Curves.easeOutCubic,
-    );
-    
+
     // Initialize mouse position to center
     final cardWidth = widget.isMobile ? 300.0 : 340.0;
     final cardHeight = widget.isMobile ? 360.0 : 400.0;
     _mousePosition = Offset(cardWidth / 2, cardHeight / 2);
-    
+
     // Initialize image loaded state - will be set to true when image loads successfully
     _imageLoadedSuccessfully = false;
   }
@@ -1426,7 +1429,7 @@ class _MiniProjectCardState extends State<_MiniProjectCard>
     _expandController.dispose();
     super.dispose();
   }
-  
+
   void _toggleExpand() {
     if (!widget.isMobile) return;
     setState(() {
@@ -1493,464 +1496,626 @@ class _MiniProjectCardState extends State<_MiniProjectCard>
           child: AnimatedBuilder(
             animation: Listenable.merge([_hoverController, _expandController]),
             builder: (context, child) {
-            // Calculate 3D projection based on mouse position
-            final cardWidth = widget.isMobile ? 300.0 : 340.0;
-            final cardHeight = widget.isMobile ? 360.0 : 400.0;
-            
-            // Normalize mouse position to -1 to 1 range
-            // Use center as default if not hovered
-            final normalizedX = _isHovered && _mousePosition.dx > 0
-                ? ((_mousePosition.dx / cardWidth) * 2 - 1).clamp(-1.0, 1.0)
-                : 0.0;
-            final normalizedY = _isHovered && _mousePosition.dy > 0
-                ? ((_mousePosition.dy / cardHeight) * 2 - 1).clamp(-1.0, 1.0)
-                : 0.0;
-            
-            // Apply projection effect only when hovered
-            final projectionValue = _projectionAnimation.value;
-            final rotateX = normalizedY * 8.0 * projectionValue; // Max 8 degrees
-            final rotateY = -normalizedX * 8.0 * projectionValue; // Max 8 degrees
-            final translateZ = 50.0 * projectionValue; // Move forward 50px for more elevation
-            final scale = 1.0 + (0.08 * projectionValue); // Scale up 8% for more prominence
-            
-            // Calculate glow intensity
-            final glowIntensity = _glowAnimation.value;
-          
-          return Transform(
-            alignment: Alignment.center,
-            transform: Matrix4.identity()
-              ..setEntry(3, 2, 0.001) // Perspective
-              ..translateByVector3(Vector3(0.0, 0.0, translateZ))
-              ..rotateX(rotateX * (3.14159 / 180)) // Convert degrees to radians
-              ..rotateY(rotateY * (3.14159 / 180))
-              ..scale(scale),
-            child: Container(
-              // Outer container for neon glow effect
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  // Multiple layered shadows for neon glow effect
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.6 * glowIntensity),
-                    blurRadius: 8 * glowIntensity,
-                    spreadRadius: 2 * glowIntensity,
-                  ),
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.45 * glowIntensity),
-                    blurRadius: 16 * glowIntensity,
-                    spreadRadius: 1 * glowIntensity,
-                  ),
-                  BoxShadow(
-                    color: AppColors.primaryLight.withValues(alpha: 0.5 * glowIntensity),
-                    blurRadius: 24 * glowIntensity,
-                    spreadRadius: 0.5 * glowIntensity,
-                  ),
-                  BoxShadow(
-                    color: AppColors.primaryLight.withValues(alpha: 0.35 * glowIntensity),
-                    blurRadius: 32 * glowIntensity,
-                    spreadRadius: 0 * glowIntensity,
-                  ),
-                  // Elevation shadow
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.25 * glowIntensity),
-                    blurRadius: 40 * glowIntensity,
-                    spreadRadius: 0,
-                    offset: Offset(0, 10 * glowIntensity),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
+              // Calculate 3D projection based on mouse position
+              final cardWidth = widget.isMobile ? 300.0 : 340.0;
+              final cardHeight = widget.isMobile ? 360.0 : 400.0;
+
+              // Normalize mouse position to -1 to 1 range
+              // Use center as default if not hovered
+              final normalizedX = _isHovered && _mousePosition.dx > 0
+                  ? ((_mousePosition.dx / cardWidth) * 2 - 1).clamp(-1.0, 1.0)
+                  : 0.0;
+              final normalizedY = _isHovered && _mousePosition.dy > 0
+                  ? ((_mousePosition.dy / cardHeight) * 2 - 1).clamp(-1.0, 1.0)
+                  : 0.0;
+
+              // Apply projection effect only when hovered
+              final projectionValue = _projectionAnimation.value;
+              final rotateX =
+                  normalizedY * 8.0 * projectionValue; // Max 8 degrees
+              final rotateY =
+                  -normalizedX * 8.0 * projectionValue; // Max 8 degrees
+              final translateZ =
+                  50.0 *
+                  projectionValue; // Move forward 50px for more elevation
+              final scale =
+                  1.0 +
+                  (0.08 * projectionValue); // Scale up 8% for more prominence
+
+              // Calculate glow intensity
+              final glowIntensity = _glowAnimation.value;
+
+              return Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.identity()
+                  ..setEntry(3, 2, 0.001) // Perspective
+                  ..translateByVector3(Vector3(0.0, 0.0, translateZ))
+                  ..rotateX(
+                    rotateX * (3.14159 / 180),
+                  ) // Convert degrees to radians
+                  ..rotateY(rotateY * (3.14159 / 180))
+                  ..scaleByVector3(Vector3(scale, scale, scale)),
                 child: Container(
+                  // Outer container for neon glow effect
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(
-                        alpha: 0.3 + (0.7 * glowIntensity),
+                    boxShadow: [
+                      // Multiple layered shadows for neon glow effect
+                      BoxShadow(
+                        color: AppColors.primary.withValues(
+                          alpha: 0.6 * glowIntensity,
+                        ),
+                        blurRadius: 8 * glowIntensity,
+                        spreadRadius: 2 * glowIntensity,
                       ),
-                      width: 1.5 + (1.5 * glowIntensity),
-                    ),
+                      BoxShadow(
+                        color: AppColors.primary.withValues(
+                          alpha: 0.45 * glowIntensity,
+                        ),
+                        blurRadius: 16 * glowIntensity,
+                        spreadRadius: 1 * glowIntensity,
+                      ),
+                      BoxShadow(
+                        color: AppColors.primaryLight.withValues(
+                          alpha: 0.5 * glowIntensity,
+                        ),
+                        blurRadius: 24 * glowIntensity,
+                        spreadRadius: 0.5 * glowIntensity,
+                      ),
+                      BoxShadow(
+                        color: AppColors.primaryLight.withValues(
+                          alpha: 0.35 * glowIntensity,
+                        ),
+                        blurRadius: 32 * glowIntensity,
+                        spreadRadius: 0 * glowIntensity,
+                      ),
+                      // Elevation shadow
+                      BoxShadow(
+                        color: Colors.black.withValues(
+                          alpha: 0.25 * glowIntensity,
+                        ),
+                        blurRadius: 40 * glowIntensity,
+                        spreadRadius: 0,
+                        offset: Offset(0, 10 * glowIntensity),
+                      ),
+                    ],
                   ),
-                  child: Stack(
-          children: [
-            // Expanded image area with raindrop blur effect
-            Positioned.fill(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Main image with scroll animation on hover
-                    AnimatedBuilder(
-                      animation: _imageScrollController,
-                      builder: (context, child) {
-                        // Calculate scroll offset: moves from 0 (bottom) to -scrollAmount (top)
-                        // Using a percentage of the card height for smooth scrolling
-                        final cardHeight = widget.isMobile ? 360.0 : 400.0;
-                        final scrollAmount = cardHeight * 0.3; // Scroll 30% of card height
-                        
-                        // Only apply scroll if image loaded successfully
-                        final shouldScroll = _imageLoadedSuccessfully && 
-                            widget.project.imageUrl.isNotEmpty;
-                        final scrollOffset = shouldScroll 
-                            ? -scrollAmount * _imageScrollAnimation.value 
-                            : 0.0;
-                        
-                        return Transform.translate(
-                          offset: Offset(0, scrollOffset),
-                          child: Image.network(
-                            widget.project.imageUrl,
-                            fit: BoxFit.cover,
-                            frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                              // Track successful image load
-                              if (frame != null && !_imageLoadedSuccessfully) {
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
-                                  if (mounted) {
-                                    setState(() {
-                                      _imageLoadedSuccessfully = true;
-                                    });
-                                    // If already hovering, start the animation
-                                    if (_isHovered) {
-                                      _imageScrollController.repeat(reverse: true);
-                                    }
-                                  }
-                                });
-                              }
-                              return child;
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              // Mark image as failed to load
-                              if (_imageLoadedSuccessfully) {
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
-                                  if (mounted) {
-                                    setState(() {
-                                      _imageLoadedSuccessfully = false;
-                                    });
-                                    // Stop animation if running
-                                    _imageScrollController.stop();
-                                    _imageScrollController.reset();
-                                  }
-                                });
-                              }
-                              return Container(
-                                color: AppColors.surfaceLight,
-                                alignment: const Alignment(0, -0.5), // Position more upwards
-                                child: const Icon(
-                                  Icons.image,
-                                  size: 40,
-                                  color: AppColors.textTertiary,
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                    // Gradient overlay for depth
-                    Container(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            AppColors.background.withValues(alpha: 0.4),
-                          ],
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(
+                            alpha: 0.3 + (0.7 * glowIntensity),
+                          ),
+                          width: 1.5 + (1.5 * glowIntensity),
                         ),
                       ),
-                    ),
-                    // Raindrop blur effect below title area - start lower to show more image
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: FractionallySizedBox(
-                        heightFactor: 0.5,
-                        alignment: Alignment.bottomCenter,
-                        child: ClipRect(
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                            child: CustomPaint(
-                              painter: _RaindropBlurPainter(),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Colors.transparent,
-                                      AppColors.background.withValues(alpha: 0.2),
-                                      AppColors.background.withValues(alpha: 0.4),
-                                    ],
-                                    stops: const [0.0, 0.3, 1.0],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // Glass morphism card content - expandable upward on mobile
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutCubic,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              // When expanded on mobile, top is 40 (near top), otherwise 130 (shows image)
-              top: (widget.isMobile && _isExpanded) ? 40 : 130,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title area with glass background
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppColors.primary.withValues(alpha: 0.2),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  widget.project.title,
-                                  style: AppTextStyles.heading4(context).copyWith(
-                                    color: AppColors.textPrimary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 20,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              // Show expand/collapse icon on mobile
-                              if (widget.isMobile)
-                                Icon(
-                                  _isExpanded ? Icons.expand_less : Icons.expand_more,
-                                  color: AppColors.primaryLight,
-                                  size: 20,
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Glass content area
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        bottom: Radius.circular(20),
-                      ),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                        child: Container(
-                          padding: const EdgeInsets.all(20),
-  
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                AppColors.surface.withValues(alpha: 0.2),
-                                AppColors.surface.withValues(alpha: 0.4),
-                              ],
-                            ),
-                            borderRadius: const BorderRadius.vertical(
-                              bottom: Radius.circular(20),
-                            ),
-                            border: Border(
-                              top: BorderSide(
-                                color: AppColors.primary.withValues(alpha: 0.1),
-                                width: 1,
-                              ),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Description - shows more when expanded on mobile
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  physics: (widget.isMobile && _isExpanded) 
-                                      ? const AlwaysScrollableScrollPhysics()
-                                      : const NeverScrollableScrollPhysics(),
-                                  child: Text(
-                                    widget.project.description,
-                                    style: AppTextStyles.bodySmall(context).copyWith(
-                                      color: AppColors.textSecondary,
-                                    ),
-                                    maxLines: (widget.isMobile && _isExpanded) ? null : 3,
-                                    overflow: (widget.isMobile && _isExpanded) 
-                                        ? TextOverflow.visible 
-                                        : TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: widget.project.technologies
-                                    .take(3)
-                                    .map(
-                                      (tech) => ClipRRect(
-                                        borderRadius: BorderRadius.circular(16),
-                                        child: BackdropFilter(
-                                          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.primary.withValues(alpha: 0.25),
-                                              borderRadius: BorderRadius.circular(16),
-                                              border: Border.all(
-                                                color: AppColors.primary.withValues(alpha: 0.3),
-                                                width: 1,
+                      child: Stack(
+                        children: [
+                          // Expanded image area with raindrop blur effect
+                          Positioned.fill(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  // Main image with scroll animation on hover
+                                  AnimatedBuilder(
+                                    animation: _imageScrollController,
+                                    builder: (context, child) {
+                                      // Calculate scroll offset: moves from 0 (bottom) to -scrollAmount (top)
+                                      // Using a percentage of the card height for smooth scrolling
+                                      final cardHeight = widget.isMobile
+                                          ? 360.0
+                                          : 400.0;
+                                      final scrollAmount =
+                                          cardHeight *
+                                          0.3; // Scroll 30% of card height
+
+                                      // Only apply scroll if image loaded successfully
+                                      final shouldScroll =
+                                          _imageLoadedSuccessfully &&
+                                          widget.project.imageUrl.isNotEmpty;
+                                      final scrollOffset = shouldScroll
+                                          ? -scrollAmount *
+                                                _imageScrollAnimation.value
+                                          : 0.0;
+
+                                      return Transform.translate(
+                                        offset: Offset(0, scrollOffset),
+                                        child: Image.network(
+                                          widget.project.imageUrl,
+                                          fit: BoxFit.cover,
+                                          frameBuilder:
+                                              (
+                                                context,
+                                                child,
+                                                frame,
+                                                wasSynchronouslyLoaded,
+                                              ) {
+                                                // Track successful image load
+                                                if (frame != null &&
+                                                    !_imageLoadedSuccessfully) {
+                                                  WidgetsBinding.instance
+                                                      .addPostFrameCallback((
+                                                        _,
+                                                      ) {
+                                                        if (mounted) {
+                                                          setState(() {
+                                                            _imageLoadedSuccessfully =
+                                                                true;
+                                                          });
+                                                          // If already hovering, start the animation
+                                                          if (_isHovered) {
+                                                            _imageScrollController
+                                                                .repeat(
+                                                                  reverse: true,
+                                                                );
+                                                          }
+                                                        }
+                                                      });
+                                                }
+                                                return child;
+                                              },
+                                          errorBuilder: (context, error, stackTrace) {
+                                            // Mark image as failed to load
+                                            if (_imageLoadedSuccessfully) {
+                                              WidgetsBinding.instance
+                                                  .addPostFrameCallback((_) {
+                                                    if (mounted) {
+                                                      setState(() {
+                                                        _imageLoadedSuccessfully =
+                                                            false;
+                                                      });
+                                                      // Stop animation if running
+                                                      _imageScrollController
+                                                          .stop();
+                                                      _imageScrollController
+                                                          .reset();
+                                                    }
+                                                  });
+                                            }
+                                            return Container(
+                                              color: AppColors.surfaceLight,
+                                              alignment: const Alignment(
+                                                0,
+                                                -0.5,
+                                              ), // Position more upwards
+                                              child: const Icon(
+                                                Icons.image,
+                                                size: 40,
+                                                color: AppColors.textTertiary,
                                               ),
-                                            ),
-                                            child: Text(
-                                              tech,
-                                              style: AppTextStyles.bodySmall(context).copyWith(
-                                                fontSize: 10,
-                                                color: AppColors.primaryLight,
-                                                fontWeight: FontWeight.w500,
+                                            );
+                                          },
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  // Gradient overlay for depth
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Colors.transparent,
+                                          AppColors.background.withValues(
+                                            alpha: 0.4,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  // Raindrop blur effect below title area - start lower to show more image
+                                  Positioned(
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    child: FractionallySizedBox(
+                                      heightFactor: 0.5,
+                                      alignment: Alignment.bottomCenter,
+                                      child: ClipRect(
+                                        child: BackdropFilter(
+                                          filter: ImageFilter.blur(
+                                            sigmaX: 8,
+                                            sigmaY: 8,
+                                          ),
+                                          child: CustomPaint(
+                                            painter: _RaindropBlurPainter(),
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.topCenter,
+                                                  end: Alignment.bottomCenter,
+                                                  colors: [
+                                                    Colors.transparent,
+                                                    AppColors.background
+                                                        .withValues(alpha: 0.2),
+                                                    AppColors.background
+                                                        .withValues(alpha: 0.4),
+                                                  ],
+                                                  stops: const [0.0, 0.3, 1.0],
+                                                ),
                                               ),
                                             ),
                                           ),
                                         ),
                                       ),
-                                    )
-                                    .toList(),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 12),
-                              Builder(
-                                builder: (context) {
-                                  final buttons = <Widget>[];
-
-                                  if (widget.project.githubUrl != null) {
-                                    buttons.add(
-                                      _ActionButton(
-                                        icon: Icons.code,
-                                        label: 'Code',
-                                        onTap: () => _launchUrl(widget.project.githubUrl),
-                                        isSmall: true,
+                            ),
+                          ),
+                          // Glass morphism card content - expandable upward on mobile
+                          AnimatedPositioned(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOutCubic,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            // When expanded on mobile, top is 40 (near top), otherwise 130 (shows image)
+                            top: (widget.isMobile && _isExpanded) ? 40 : 130,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Title area with glass background
+                                Container(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    20,
+                                    0,
+                                    20,
+                                    8,
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: BackdropFilter(
+                                      filter: ImageFilter.blur(
+                                        sigmaX: 10,
+                                        sigmaY: 10,
                                       ),
-                                    );
-                                  }
-                                  if (widget.project.iosUrl != null) {
-                                    buttons.add(
-                                      _ActionButton(
-                                        icon: Icons.phone_iphone,
-                                        label: 'iOS',
-                                        onTap: () => _launchUrl(widget.project.iosUrl),
-                                        isSmall: true,
-                                      ),
-                                    );
-                                  }
-                                  if (widget.project.androidUrl != null) {
-                                    buttons.add(
-                                      _ActionButton(
-                                        icon: Icons.android,
-                                        label: 'Android',
-                                        onTap: () => _launchUrl(widget.project.androidUrl),
-                                        isSmall: true,
-                                      ),
-                                    );
-                                  }
-                                  if (widget.project.userAndroidUrl != null) {
-                                    buttons.add(
-                                      _ActionButton(
-                                        icon: Icons.android,
-                                        label: 'User APK',
-                                        onTap: () => _launchUrl(widget.project.userAndroidUrl),
-                                        isSmall: true,
-                                      ),
-                                    );
-                                  }
-                                  if (widget.project.adminAndroidUrl != null) {
-                                    buttons.add(
-                                      _ActionButton(
-                                        icon: Icons.admin_panel_settings,
-                                        label: 'Admin APK',
-                                        onTap: () => _launchUrl(widget.project.adminAndroidUrl),
-                                        isSmall: true,
-                                      ),
-                                    );
-                                  }
-                                  if (widget.project.webUrl != null) {
-                                    buttons.add(
-                                      _ActionButton(
-                                        icon: Icons.language,
-                                        label: 'Web',
-                                        onTap: () => _launchUrl(widget.project.webUrl),
-                                        isSmall: true,
-                                      ),
-                                    );
-                                  }
-
-                                  if (buttons.isEmpty) return const SizedBox.shrink();
-
-                                  final rowChildren = <Widget>[];
-                                  for (int i = 0; i < buttons.length; i++) {
-                                    rowChildren.add(buttons[i]);
-                                    if (i < buttons.length - 1) {
-                                      rowChildren.add(const SizedBox(width: 8));
-                                    }
-                                  }
-
-                                  return SizedBox(
-                                    height: 40,
-                                    child: InteractiveViewer(
-                                      constrained: false,
-                                      panEnabled: true,
-                                      scaleEnabled: false,
-                                      minScale: 1.0,
-                                      maxScale: 1.0,
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: rowChildren,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.surface.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          border: Border.all(
+                                            color: AppColors.primary.withValues(
+                                              alpha: 0.2,
+                                            ),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                widget.project.title,
+                                                style:
+                                                    AppTextStyles.heading4(
+                                                      context,
+                                                    ).copyWith(
+                                                      color:
+                                                          AppColors.textPrimary,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 20,
+                                                    ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            // Show expand/collapse icon on mobile
+                                            if (widget.isMobile)
+                                              Icon(
+                                                _isExpanded
+                                                    ? Icons.expand_less
+                                                    : Icons.expand_more,
+                                                color: AppColors.primaryLight,
+                                                size: 20,
+                                              ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  );
-                                },
-                              ),
-                            ],
+                                  ),
+                                ),
+                                // Glass content area
+                                Expanded(
+                                  child: ClipRRect(
+                                    borderRadius: const BorderRadius.vertical(
+                                      bottom: Radius.circular(20),
+                                    ),
+                                    child: BackdropFilter(
+                                      filter: ImageFilter.blur(
+                                        sigmaX: 15,
+                                        sigmaY: 15,
+                                      ),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(20),
+
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              AppColors.surface.withValues(
+                                                alpha: 0.2,
+                                              ),
+                                              AppColors.surface.withValues(
+                                                alpha: 0.4,
+                                              ),
+                                            ],
+                                          ),
+                                          borderRadius:
+                                              const BorderRadius.vertical(
+                                                bottom: Radius.circular(20),
+                                              ),
+                                          border: Border(
+                                            top: BorderSide(
+                                              color: AppColors.primary
+                                                  .withValues(alpha: 0.1),
+                                              width: 1,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            // Description - shows more when expanded on mobile
+                                            Expanded(
+                                              child: SingleChildScrollView(
+                                                physics:
+                                                    (widget.isMobile &&
+                                                        _isExpanded)
+                                                    ? const AlwaysScrollableScrollPhysics()
+                                                    : const NeverScrollableScrollPhysics(),
+                                                child: Text(
+                                                  widget.project.description,
+                                                  style:
+                                                      AppTextStyles.bodySmall(
+                                                        context,
+                                                      ).copyWith(
+                                                        color: AppColors
+                                                            .textSecondary,
+                                                      ),
+                                                  maxLines:
+                                                      (widget.isMobile &&
+                                                          _isExpanded)
+                                                      ? null
+                                                      : 3,
+                                                  overflow:
+                                                      (widget.isMobile &&
+                                                          _isExpanded)
+                                                      ? TextOverflow.visible
+                                                      : TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Wrap(
+                                              spacing: 6,
+                                              runSpacing: 6,
+                                              children: widget
+                                                  .project
+                                                  .technologies
+                                                  .take(3)
+                                                  .map(
+                                                    (tech) => ClipRRect(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            16,
+                                                          ),
+                                                      child: BackdropFilter(
+                                                        filter:
+                                                            ImageFilter.blur(
+                                                              sigmaX: 5,
+                                                              sigmaY: 5,
+                                                            ),
+                                                        child: Container(
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 10,
+                                                                vertical: 4,
+                                                              ),
+                                                          decoration: BoxDecoration(
+                                                            color: AppColors
+                                                                .primary
+                                                                .withValues(
+                                                                  alpha: 0.25,
+                                                                ),
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  16,
+                                                                ),
+                                                            border: Border.all(
+                                                              color: AppColors
+                                                                  .primary
+                                                                  .withValues(
+                                                                    alpha: 0.3,
+                                                                  ),
+                                                              width: 1,
+                                                            ),
+                                                          ),
+                                                          child: Text(
+                                                            tech,
+                                                            style:
+                                                                AppTextStyles.bodySmall(
+                                                                  context,
+                                                                ).copyWith(
+                                                                  fontSize: 10,
+                                                                  color: AppColors
+                                                                      .primaryLight,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  )
+                                                  .toList(),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Builder(
+                                              builder: (context) {
+                                                final buttons = <Widget>[];
+
+                                                if (widget.project.githubUrl !=
+                                                    null) {
+                                                  buttons.add(
+                                                    _ActionButton(
+                                                      icon: Icons.code,
+                                                      label: 'Code',
+                                                      onTap: () => _launchUrl(
+                                                        widget
+                                                            .project
+                                                            .githubUrl,
+                                                      ),
+                                                      isSmall: true,
+                                                    ),
+                                                  );
+                                                }
+                                                if (widget.project.iosUrl !=
+                                                    null) {
+                                                  buttons.add(
+                                                    _ActionButton(
+                                                      icon: Icons.phone_iphone,
+                                                      label: 'iOS',
+                                                      onTap: () => _launchUrl(
+                                                        widget.project.iosUrl,
+                                                      ),
+                                                      isSmall: true,
+                                                    ),
+                                                  );
+                                                }
+                                                if (widget.project.androidUrl !=
+                                                    null) {
+                                                  buttons.add(
+                                                    _ActionButton(
+                                                      icon: Icons.android,
+                                                      label: 'Android',
+                                                      onTap: () => _launchUrl(
+                                                        widget
+                                                            .project
+                                                            .androidUrl,
+                                                      ),
+                                                      isSmall: true,
+                                                    ),
+                                                  );
+                                                }
+                                                if (widget
+                                                        .project
+                                                        .userAndroidUrl !=
+                                                    null) {
+                                                  buttons.add(
+                                                    _ActionButton(
+                                                      icon: Icons.android,
+                                                      label: 'User APK',
+                                                      onTap: () => _launchUrl(
+                                                        widget
+                                                            .project
+                                                            .userAndroidUrl,
+                                                      ),
+                                                      isSmall: true,
+                                                    ),
+                                                  );
+                                                }
+                                                if (widget
+                                                        .project
+                                                        .adminAndroidUrl !=
+                                                    null) {
+                                                  buttons.add(
+                                                    _ActionButton(
+                                                      icon: Icons
+                                                          .admin_panel_settings,
+                                                      label: 'Admin APK',
+                                                      onTap: () => _launchUrl(
+                                                        widget
+                                                            .project
+                                                            .adminAndroidUrl,
+                                                      ),
+                                                      isSmall: true,
+                                                    ),
+                                                  );
+                                                }
+                                                if (widget.project.webUrl !=
+                                                    null) {
+                                                  buttons.add(
+                                                    _ActionButton(
+                                                      icon: Icons.language,
+                                                      label: 'Web',
+                                                      onTap: () => _launchUrl(
+                                                        widget.project.webUrl,
+                                                      ),
+                                                      isSmall: true,
+                                                    ),
+                                                  );
+                                                }
+
+                                                if (buttons.isEmpty) {
+                                                  return const SizedBox.shrink();
+                                                }
+
+                                                final rowChildren = <Widget>[];
+                                                for (
+                                                  int i = 0;
+                                                  i < buttons.length;
+                                                  i++
+                                                ) {
+                                                  rowChildren.add(buttons[i]);
+                                                  if (i < buttons.length - 1) {
+                                                    rowChildren.add(
+                                                      const SizedBox(width: 8),
+                                                    );
+                                                  }
+                                                }
+
+                                                return SizedBox(
+                                                  height: 40,
+                                                  child: InteractiveViewer(
+                                                    constrained: false,
+                                                    panEnabled: true,
+                                                    scaleEnabled: false,
+                                                    minScale: 1.0,
+                                                    maxScale: 1.0,
+                                                    child: Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: rowChildren,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
-          ],
-                  ),
                 ),
-              ),
-            ),
-            );
+              );
             },
           ),
         ),
@@ -1982,19 +2147,19 @@ class _RaindropBlurPainter extends CustomPainter {
     for (final drop in raindrops) {
       final pos = drop['pos'] as Offset;
       final radius = drop['size'] as double;
-      
+
       // Draw raindrop with gradient-like effect
       final paint = Paint()
         ..style = PaintingStyle.fill
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
-      
+
       // Outer glow
       canvas.drawCircle(
         pos,
         radius,
         paint..color = Colors.white.withValues(alpha: 0.08),
       );
-      
+
       // Inner highlight
       canvas.drawCircle(
         pos,
@@ -2012,14 +2177,12 @@ class _ActionButton extends StatefulWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final bool isPrimary;
   final bool isSmall;
 
   const _ActionButton({
     required this.icon,
     required this.label,
     required this.onTap,
-    this.isPrimary = false,
     this.isSmall = false,
   });
 
@@ -2203,7 +2366,7 @@ class _ProjectGalleryPopupState extends State<_ProjectGalleryPopup>
     final startOffset = widget.isFromTopLeft
         ? const Offset(-1.0, -1.0)
         : const Offset(1.0, -1.0);
-    
+
     // End offset is opposite direction for closing
     _endOffset = widget.isFromTopLeft
         ? const Offset(1.0, -1.0)
@@ -2242,39 +2405,30 @@ class _ProjectGalleryPopupState extends State<_ProjectGalleryPopup>
   void _closePopup() {
     // Reset controller and create new animations for closing
     _controller.reset();
-    
+
     // Create new animations from center to opposite direction
     final closeSlideAnimation = Tween<Offset>(
       begin: Offset.zero,
       end: _endOffset,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInCubic,
-    ));
-    
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInCubic));
+
     final closeScaleAnimation = Tween<double>(
       begin: 1.0,
       end: 0.3,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInCubic,
-    ));
-    
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInCubic));
+
     final closeOpacityAnimation = Tween<double>(
       begin: 1.0,
       end: 0.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeIn,
-    ));
-    
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
+
     // Replace animations for closing
     setState(() {
       _slideAnimation = closeSlideAnimation;
       _scaleAnimation = closeScaleAnimation;
       _opacityAnimation = closeOpacityAnimation;
     });
-    
+
     // Animate to opposite direction
     _controller.forward().then((_) {
       if (mounted) {
@@ -2288,6 +2442,12 @@ class _ProjectGalleryPopupState extends State<_ProjectGalleryPopup>
     final images = widget.project.galleryImages ?? [];
     if (images.isEmpty) return const SizedBox.shrink();
 
+    final size = MediaQuery.of(context).size;
+    final isMobile = size.width < 768;
+    // Use smaller height for mobile view
+    final heightFactor = isMobile ? 0.55 : 0.69;
+    final widthFactor = isMobile ? 0.9 : 0.69;
+
     return FadeTransition(
       opacity: _opacityAnimation,
       child: SlideTransition(
@@ -2299,11 +2459,11 @@ class _ProjectGalleryPopupState extends State<_ProjectGalleryPopup>
             insetPadding: const EdgeInsets.all(20),
             child: Container(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.69,
-                maxHeight: MediaQuery.of(context).size.height * 0.69,
+                maxWidth: size.width * widthFactor,
+                maxHeight: size.height * heightFactor,
               ),
-              width: MediaQuery.of(context).size.width * 0.69,
-              height: MediaQuery.of(context).size.height * 0.69,
+              width: size.width * widthFactor,
+              height: size.height * heightFactor,
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(24),

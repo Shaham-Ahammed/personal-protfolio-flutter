@@ -80,7 +80,13 @@ class _ExperienceSectionState extends State<ExperienceSection>
     }
   }
 
-  double _getVisibilityThreshold() {
+  double _getVisibilityThreshold(bool isMobile) {
+    // For mobile view, trigger animation when 20% visible
+    if (isMobile) {
+      return 0.20;
+    }
+    
+    // For desktop, use dynamic threshold based on experience count
     final experienceCount = PortfolioData.experiences.length;
     if (experienceCount >= 5) {
       return 0.45; // 45% for 5 or more elements
@@ -107,6 +113,7 @@ class _ExperienceSectionState extends State<ExperienceSection>
       final widgetSize = renderBox.size;
       final screenSize = MediaQuery.of(context).size;
       final screenHeight = screenSize.height;
+      final isMobile = screenSize.width < 768;
 
       final viewportTop = 0.0;
       final viewportBottom = screenHeight;
@@ -121,7 +128,7 @@ class _ExperienceSectionState extends State<ExperienceSection>
       if (widgetSize.height > 0) {
         final visibilityPercentage = visibleHeight / widgetSize.height;
         final isInViewport = widgetBottom > viewportTop && widgetTop < viewportBottom;
-        final threshold = _getVisibilityThreshold();
+        final threshold = _getVisibilityThreshold(isMobile);
         final shouldBeAnimated = isInViewport && visibilityPercentage >= threshold;
 
         if (shouldBeAnimated && !_sectionAnimated && mounted) {
@@ -799,35 +806,45 @@ class _ExperienceCardState extends State<_ExperienceCard>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.location_on,
-                    size: 14,
-                    color: AppColors.textTertiary,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    widget.experience.location,
-                    style: AppTextStyles.bodySmall(context),
-                  ),
-                ],
+              Expanded(
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.location_on,
+                      size: 14,
+                      color: AppColors.textTertiary,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        widget.experience.location,
+                        style: AppTextStyles.bodySmall(context),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  widget.experience.period,
-                  style: AppTextStyles.bodySmall(context).copyWith(
-                    color: AppColors.primaryLight,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
+              const SizedBox(width: 8),
+              Flexible(
+                flex: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    widget.experience.period,
+                    style: AppTextStyles.bodySmall(context).copyWith(
+                      color: AppColors.primaryLight,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ),

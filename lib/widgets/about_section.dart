@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:personal_portfoliio/constants/images.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../constants/colors.dart';

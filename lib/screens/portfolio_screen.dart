@@ -133,20 +133,23 @@ class _PortfolioScreenState extends State<PortfolioScreen>
     
     final scrollOffset = _scrollController.offset;
     final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
     
     // Only apply snap between Home and About sections
     if (scrollOffset > 0 && scrollOffset < screenHeight) {
-      final snapThreshold = 0.3; // 30% visibility triggers snap
+      // Use 20% threshold for mobile (snaps earlier), 30% for desktop
+      final snapThreshold = isMobile ? 0.1 : 0.3;
       
-      // If scrolled more than 70% (Home only 30% visible), snap to About
+      // If scrolled more than (1-threshold)% (Home only threshold% visible), snap to About
       if (scrollOffset >= screenHeight * (1 - snapThreshold)) {
         _snapToOffset(screenHeight);
       }
-      // If scrolled less than 30% (About only 30% visible), snap to Home
+      // If scrolled less than threshold% (About only threshold% visible), snap to Home
       else if (scrollOffset <= screenHeight * snapThreshold) {
         _snapToOffset(0);
       }
-      // In between (30% to 70%), snap to the closer section
+      // In between, snap to the closer section
       else if (scrollOffset >= screenHeight * 0.5) {
         _snapToOffset(screenHeight);
       } else {
