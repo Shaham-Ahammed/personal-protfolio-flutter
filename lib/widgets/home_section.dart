@@ -62,7 +62,7 @@ class _HomeSectionState extends State<HomeSection>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isMobile = size.width < 768;
+    final isMobile = size.width < 910;
 
     return Container(
       width: double.infinity,
@@ -81,12 +81,13 @@ class _HomeSectionState extends State<HomeSection>
                   vertical: isMobile ? 40 : 80,
                 ),
                 child: isMobile
-                    ? _buildMobileLayout(context)
+                    ? Center(child: _buildMobileLayout(context))
                     : _buildDesktopLayout(context),
               ),
-              // Download CV Button at bottom left corner
+              // Download CV Button - bottom right on mobile, bottom left on desktop
               Positioned(
-                left: isMobile ? 20 : 60,
+                left: isMobile ? null : 60,
+                right: isMobile ? 20 : null,
                 bottom: isMobile ? 20 : 40,
                 child: _DownloadCVButton(onTap: _downloadCV),
               ),
@@ -103,50 +104,56 @@ class _HomeSectionState extends State<HomeSection>
       children: [
         Expanded(
           flex: 1,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Hello, I\'m',
-                style: AppTextStyles.bodyLarge(
-                  context,
-                ).copyWith(color: AppColors.primaryLight, fontSize: 20),
-              ),
-              const SizedBox(height: 16),
-              _AnimatedNameText(
-                text: PortfolioData.name,
-                style: AppTextStyles.heading1(context),
-                onCompleted: () {
-                  setState(() => _isNameAnimationComplete = true);
-                  _titleController.forward();
-                },
-              ),
-              const SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Calculate available width for the bird to drag
+              // This is the width of the content area
+              final availableWidth = constraints.maxWidth;
+              
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  FadeTransition(
-                    opacity: _titleOpacity,
-                    child: SlideTransition(
-                      position: _titleSlide,
-                      child: Text(
-                        PortfolioData.title,
-                        style: AppTextStyles.heading3(
-                          context,
-                        ).copyWith(color: AppColors.textSecondary),
+                  Text(
+                    'Hello, I\'m',
+                    style: AppTextStyles.bodyLarge(
+                      context,
+                    ).copyWith(color: AppColors.primaryLight, fontSize: 20),
+                  ),
+                  const SizedBox(height: 16),
+                  _AnimatedNameText(
+                    text: PortfolioData.name,
+                    style: AppTextStyles.heading1(context),
+                    onCompleted: () {
+                      setState(() => _isNameAnimationComplete = true);
+                      _titleController.forward();
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      FadeTransition(
+                        opacity: _titleOpacity,
+                        child: SlideTransition(
+                          position: _titleSlide,
+                          child: Text(
+                            PortfolioData.title,
+                            style: AppTextStyles.heading3(
+                              context,
+                            ).copyWith(color: AppColors.textSecondary),
+                          ),
+                        ),
                       ),
-                    ),
+                       SizedBox(width: 32),
+                      AnimatedOpacity(
+                        opacity: _isNameAnimationComplete ? 1 : 0,
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.easeOut,
+                        child: _FlutterBird(availableWidth: availableWidth),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 32),
-                  AnimatedOpacity(
-                    opacity: _isNameAnimationComplete ? 1 : 0,
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.easeOut,
-                    child: _FlutterBird(),
-                  ),
-                ],
-              ),
               const SizedBox(height: 18),
               Container(
                 padding: const EdgeInsets.all(24),
@@ -176,7 +183,9 @@ class _HomeSectionState extends State<HomeSection>
                   ],
                 ),
               ),
-            ],
+                ],
+              );
+            },
           ),
         ),
         const SizedBox(width: 60),
@@ -231,120 +240,131 @@ class _HomeSectionState extends State<HomeSection>
   }
 
   Widget _buildMobileLayout(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Container(
-          width: 250,
-          height: 250,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: AppColors.primaryGradient,
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.5),
-                blurRadius: 30,
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(5),
-          child: Container(
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.background,
-            ),
-            child: ClipOval(
-              child: Image.asset(
-                PortfolioData.profileImagePath,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: AppColors.primaryGradient,
-                    ),
-                    child: const Icon(
-                      Icons.person,
-                      size: 100,
-                      color: Colors.white,
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 40),
-        Text(
-          'Hello, I\'m',
-          style: AppTextStyles.bodyLarge(
-            context,
-          ).copyWith(color: AppColors.primaryLight),
-        ),
-        const SizedBox(height: 12),
-        _AnimatedNameText(
-          text: PortfolioData.name,
-          style: AppTextStyles.heading1(context),
-          textAlign: TextAlign.center,
-          onCompleted: () {
-            setState(() => _isNameAnimationComplete = true);
-            _titleController.forward();
-          },
-        ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisSize: MainAxisSize.min,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        final screenWidth = MediaQuery.of(context).size.width;
+        final imageSize = screenWidth < 440 ? 220.0 : 250.0;
+        
+        return Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            FadeTransition(
-              opacity: _titleOpacity,
-              child: SlideTransition(
-                position: _titleSlide,
-                child: Text(
-                  PortfolioData.title,
-                  style: AppTextStyles.heading3(
-                    context,
-                  ).copyWith(color: AppColors.textSecondary),
-                  textAlign: TextAlign.center,
+            Container(
+              width: imageSize,
+              height: imageSize,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: AppColors.primaryGradient,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.5),
+                    blurRadius: 30,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(5),
+              child: Container(
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.background,
+                ),
+                child: ClipOval(
+                  child: Image.asset(
+                    PortfolioData.profileImagePath,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: AppColors.primaryGradient,
+                        ),
+                        child: const Icon(
+                          Icons.person,
+                          size: 100,
+                          color: Colors.white,
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
-            const SizedBox(width: 10),
-            AnimatedOpacity(
-              opacity: _isNameAnimationComplete ? 1 : 0,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeOut,
-              child: _FlutterBird(),
+            const SizedBox(height: 40),
+            Text(
+              'Hello, I\'m',
+              style: AppTextStyles.bodyLarge(
+                context,
+              ).copyWith(color: AppColors.primaryLight),
+            ),
+            const SizedBox(height: 12),
+            _AnimatedNameText(
+              text: PortfolioData.name,
+              style: AppTextStyles.heading1(context),
+              textAlign: TextAlign.center,
+              onCompleted: () {
+                setState(() => _isNameAnimationComplete = true);
+                _titleController.forward();
+              },
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                FadeTransition(
+                  opacity: _titleOpacity,
+                  child: SlideTransition(
+                    position: _titleSlide,
+                    child: Text(
+                      PortfolioData.title,
+                      style: AppTextStyles.heading3(
+                        context,
+                      ).copyWith(color: AppColors.textSecondary),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 15),
+                AnimatedOpacity(
+                  opacity: _isNameAnimationComplete ? 1 : 0,
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeOut,
+                  child: _FlutterBird(availableWidth: availableWidth, scale: 3),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.format_quote, color: AppColors.primaryLight, size: 28),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: _InteractiveQuote(
+                      text: PortfolioData.quote,
+                      style: AppTextStyles.quote(context),
+                      hoverScale: 1.2,
+                      textAlign: TextAlign.start,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
-        ),
-        const SizedBox(height: 32),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.3),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            children: [
-              Icon(Icons.format_quote, color: AppColors.primaryLight, size: 28),
-              const SizedBox(height: 12),
-              _InteractiveQuote(
-                text: PortfolioData.quote,
-                style: AppTextStyles.quote(context),
-                hoverScale: 1.2,
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -453,6 +473,11 @@ class _AnimatedNameTextState extends State<_AnimatedNameText> {
 }
 
 class _FlutterBird extends StatefulWidget {
+  final double? availableWidth;
+  final double scale;
+  
+  const _FlutterBird({this.availableWidth, this.scale = 4});
+  
   @override
   State<_FlutterBird> createState() => _FlutterBirdState();
 }
@@ -527,7 +552,7 @@ class _FlutterBirdState extends State<_FlutterBird>
   late final Animation<double> _rotation;
   double _dx = 0;
 
-  static const double _maxDx = 400;
+  double _maxDx = 400;
   VoidCallback? _controllerListener;
 
   @override
@@ -603,6 +628,30 @@ class _FlutterBirdState extends State<_FlutterBird>
 
   @override
   Widget build(BuildContext context) {
+    // Calculate max drag distance based on screen width and available width
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    if (widget.availableWidth != null) {
+      // Adjust percentage based on screen width breakpoints
+      // Reduces as screen gets smaller to keep bird within content area
+      double percentage;
+      if (screenWidth > 1300) {
+        percentage = 0.40; // 40% for large screens
+      } else if (screenWidth > 1150) {
+        percentage = 0.30; // 30% for screens around 1300px
+      } else if (screenWidth >= 1020) {
+        percentage = 0.20; // 20% for screens around 1150px
+      } else if (screenWidth >= 910) {
+        percentage = 0.0; // No dragging for screens 910-1020px (tablet)
+      } else {
+        percentage = 0.10; // 10% for mobile view (< 910px)
+      }
+      _maxDx = widget.availableWidth! * percentage;
+    } else {
+      // Fallback: use screen width percentage
+      _maxDx = screenWidth * 0.25;
+    }
+    
     return GestureDetector(
       onHorizontalDragUpdate: _onDragUpdate,
       onHorizontalDragEnd: _onDragEnd,
@@ -625,7 +674,7 @@ class _FlutterBirdState extends State<_FlutterBird>
           child: MouseRegion(
             cursor: SystemMouseCursors.grab,
             child: Transform.scale(
-              scale: 4,
+              scale: widget.scale,
               child: Image.asset(AppImages.flutterBird, width: 48, height: 48),
             ),
           ),
