@@ -17,7 +17,6 @@ I love problem solving and breaking down complex challenges into simple, practic
   // Contact Information
   static const String email = 'shahamahammed66@gmail.com';
   static const String phone = '+91 9961628586';
-  static const String location = 'Your City, Country';
 
   // Social Media Links
   static const String githubUrl = 'https://github.com/Shaham-Ahammed';

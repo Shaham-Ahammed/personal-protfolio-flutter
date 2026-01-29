@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../constants/colors.dart';
+import '../../../constants/colors.dart';
 
 class ParticleBackground extends StatefulWidget {
   final Widget child;

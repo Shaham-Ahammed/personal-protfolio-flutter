@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-import '../constants/colors.dart';
-import '../constants/text_styles.dart';
-import '../constants/portfolio_data.dart';
-import '../models/project_model.dart';
+import '../../constants/colors.dart';
+import '../../constants/text_styles.dart';
+import '../../constants/portfolio_data.dart';
+import '../../models/project_model.dart';
 
 class ProjectsSection extends StatefulWidget {
   final Function(VoidCallback)? onRegisterReset;

@@ -1,11 +1,11 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../widgets/navigation_bar.dart';
-import '../widgets/home_section.dart';
-import '../widgets/about_section.dart';
-import '../widgets/projects_section.dart';
-import '../widgets/experience_section.dart';
-import '../widgets/contact_section.dart';
+import '../sections/home/home_section.dart';
+import '../sections/about/about_section.dart';
+import '../sections/projects/projects_section.dart';
+import '../sections/experience/experience_section.dart';
+import '../sections/contact/contact_section.dart';
 import '../constants/colors.dart';
 
 class PortfolioScreen extends StatefulWidget {

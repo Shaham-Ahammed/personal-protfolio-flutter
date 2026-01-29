@@ -3,9 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-import '../constants/colors.dart';
-import '../constants/text_styles.dart';
-import '../constants/portfolio_data.dart';
+import '../../constants/colors.dart';
+import '../../constants/text_styles.dart';
+import '../../constants/portfolio_data.dart';
+import 'widgets/flare_painter.dart';
+import 'widgets/skill_bullet.dart';
 
 class AboutSection extends StatefulWidget {
   final Function(VoidCallback)? onRegisterReset;
@@ -28,10 +30,10 @@ class _AboutSectionState extends State<AboutSection>
   late final Animation<Offset> _contentSlide;
   late final Animation<Offset> _gifSlide;
   late final Animation<double> _fadeAnimation;
-  late final List<_FlareParticle> _particles;
+  late final List<FlareParticle> _particles;
   double _lastT = 0;
   bool _hasAnimated = false;
-  int _skillsResetKey = 0; // Key to force rebuild of skill bullets
+  int _skillsResetKey = 0;
 
   @override
   void initState() {
@@ -43,31 +45,26 @@ class _AboutSectionState extends State<AboutSection>
     _resetParticles();
     _flareController.repeat();
 
-    // Slide animation controller
     _slideController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
 
-    // Content box slides in from left
     _contentSlide =
         Tween<Offset>(begin: const Offset(-0.3, 0), end: Offset.zero).animate(
           CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
         );
 
-    // GIF container slides in from right
     _gifSlide = Tween<Offset>(begin: const Offset(0.3, 0), end: Offset.zero)
         .animate(
           CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
         );
 
-    // Fade animation
     _fadeAnimation = CurvedAnimation(
       parent: _slideController,
       curve: Curves.easeOut,
     );
 
-    // Register reset callback with parent
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && widget.onRegisterReset != null) {
         widget.onRegisterReset!(resetAnimations);
@@ -78,13 +75,12 @@ class _AboutSectionState extends State<AboutSection>
   void resetAnimations() {
     setState(() {
       _hasAnimated = false;
-      _skillsResetKey++; // Force rebuild of skill bullets to reset their animation state
+      _skillsResetKey++;
     });
     _slideController.reset();
   }
 
   void _onVisibilityChanged(VisibilityInfo info) {
-    // Start animation when at least 30% of the widget is visible
     if (info.visibleFraction > 0.3 && !_hasAnimated && mounted) {
       _slideController.forward();
       _hasAnimated = true;
@@ -111,7 +107,6 @@ class _AboutSectionState extends State<AboutSection>
         constraints: BoxConstraints(minHeight: size.height),
         decoration: BoxDecoration(
           color: AppColors.backgroundLight,
-          // Stacking effect: rounded top corners and deep shadows
           borderRadius: widget.isFirstStackingSection
               ? const BorderRadius.only(
                   topLeft: Radius.circular(42),
@@ -120,28 +115,24 @@ class _AboutSectionState extends State<AboutSection>
               : null,
           boxShadow: widget.isFirstStackingSection
               ? [
-                  // Outermost shadow - very soft, wide spread
                   BoxShadow(
                     color: const Color(0xFF000000).withValues(alpha: 0.6),
                     blurRadius: 80,
                     spreadRadius: 10,
                     offset: const Offset(0, -25),
                   ),
-                  // Deep shadow for strong lift effect
                   BoxShadow(
                     color: const Color(0xFF1A1A2E).withValues(alpha: 0.7),
                     blurRadius: 50,
                     spreadRadius: 5,
                     offset: const Offset(0, -15),
                   ),
-                  // Mid shadow for depth
                   BoxShadow(
                     color: const Color(0xFF16213E).withValues(alpha: 0.5),
                     blurRadius: 30,
                     spreadRadius: 0,
                     offset: const Offset(0, -8),
                   ),
-                  // Close shadow for edge definition
                   BoxShadow(
                     color: const Color(0xFF0F0F1A).withValues(alpha: 0.8),
                     blurRadius: 15,
@@ -222,16 +213,14 @@ class _AboutSectionState extends State<AboutSection>
   void _tick() {
     final t =
         _flareController.lastElapsedDuration?.inMilliseconds.toDouble() ?? 0.0;
-    final dtMs = (t - _lastT).clamp(0, 32); // clamp to avoid big jumps
+    final dtMs = (t - _lastT).clamp(0, 32);
     _lastT = t;
     final dt = dtMs / 1000.0;
 
-    // Simple physics in normalized space (0..1)
     for (int i = 0; i < _particles.length; i++) {
       final p = _particles[i];
       p.position += p.velocity * dt;
 
-      // Bounce on bounds
       if (p.position.dx < 0 || p.position.dx > 1) {
         p.velocity = Offset(-p.velocity.dx, p.velocity.dy);
         p.position = Offset(p.position.dx.clamp(0, 1), p.position.dy);
@@ -241,7 +230,6 @@ class _AboutSectionState extends State<AboutSection>
         p.position = Offset(p.position.dx, p.position.dy.clamp(0, 1));
       }
 
-      // Collisions with other particles (basic elastic swap)
       for (int j = i + 1; j < _particles.length; j++) {
         final q = _particles[j];
         final dist2 = (p.position - q.position).distanceSquared;
@@ -250,7 +238,6 @@ class _AboutSectionState extends State<AboutSection>
           final tmp = p.velocity;
           p.velocity = q.velocity;
           q.velocity = tmp;
-          // push apart a bit
           final diff = p.position - q.position;
           final len = diff.distance;
           final dir = len == 0 ? const Offset(1, 0) : diff / len;
@@ -265,9 +252,9 @@ class _AboutSectionState extends State<AboutSection>
   void _resetParticles() {
     final rng = math.Random();
     _particles = List.generate(3, (_) {
-      final speed = 0.12 + rng.nextDouble() * 0.12; // normalized units per sec
+      final speed = 0.12 + rng.nextDouble() * 0.12;
       final angle = rng.nextDouble() * 2 * math.pi;
-      return _FlareParticle(
+      return FlareParticle(
         position: Offset(rng.nextDouble(), rng.nextDouble()),
         velocity: Offset(math.cos(angle), math.sin(angle)) * speed,
       );
@@ -279,7 +266,7 @@ class _AboutSectionState extends State<AboutSection>
     required double flareProgress,
   }) {
     return CustomPaint(
-      foregroundPainter: _FlarePainter(
+      foregroundPainter: FlarePainter(
         progress: flareProgress,
         particles: _particles,
       ),
@@ -322,7 +309,7 @@ class _AboutSectionState extends State<AboutSection>
               runSpacing: 12,
               children: [
                 for (final skillMap in PortfolioData.skills)
-                  _SkillBullet(
+                  SkillBullet(
                     key: ValueKey('${skillMap['name']}_$_skillsResetKey'),
                     name: skillMap['name'] as String,
                   ),
@@ -338,11 +325,9 @@ class _AboutSectionState extends State<AboutSection>
     return Center(
       child: SizedBox(
         width: 300,
-
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            // Decorative outlined container behind/offset from the GIF
             Positioned(
               top: 20,
               left: 38,
@@ -359,7 +344,6 @@ class _AboutSectionState extends State<AboutSection>
                 ),
               ),
             ),
-            // Main GIF card
             Container(
               height: 300,
               width: 250,
@@ -388,7 +372,6 @@ class _AboutSectionState extends State<AboutSection>
                       height: 220,
                       decoration: BoxDecoration(
                         color: AppColors.surface,
-                        // borderRadius: BorderRadius.circular(0),
                         border: Border.all(
                           color: AppColors.primary.withValues(alpha: 0.2),
                           width: 1,
@@ -411,168 +394,4 @@ class _AboutSectionState extends State<AboutSection>
       ),
     );
   }
-}
-
-class _SkillBullet extends StatefulWidget {
-  const _SkillBullet({super.key, required this.name});
-
-  final String name;
-
-  @override
-  State<_SkillBullet> createState() => _SkillBulletState();
-}
-
-class _SkillBulletState extends State<_SkillBullet>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _shake;
-  final math.Random _rng = math.Random();
-
-  // Track the pill's resting angle so a new shake starts from its last pose.
-  double _restingAngle = 0;
-  // Angle offset applied at the beginning of a shake; set from _restingAngle.
-  double _initialAngle = 0;
-  // Randomized swing direction so first move can go left or right.
-  double _direction = 1;
-  // Live angle updated during the animation.
-  // double _currentAngle = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    );
-    _shake = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _triggerShake() {
-    if (_controller.isAnimating) return;
-
-    _direction = _rng.nextBool() ? 1 : -1;
-    _initialAngle = _restingAngle;
-    _controller.forward(from: 0);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: _triggerShake,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedBuilder(
-          animation: _shake,
-          builder: (context, child) {
-            final double progress = _shake.value;
-            // Kids swing effect: pendulum motion with rotation
-            // Exponential decay for natural damping
-            final double decay = math.exp(-progress * 1.2);
-            // Smooth sine wave for pendulum motion (fewer oscillations)
-            final double swing =
-                _direction * math.sin(progress * 2.5 * math.pi) * decay;
-            final double angle = _initialAngle + swing;
-            if (!_controller.isAnimating) {
-              _restingAngle = angle;
-            }
-            // Horizontal displacement creates the arc
-            final double offsetX = angle * 12;
-            // Rotation angle matches the swing arc (in degrees)
-            final double rotationAngle = angle * 0.15;
-            return Transform.translate(
-              offset: Offset(offsetX, 0),
-              child: Transform.rotate(angle: rotationAngle, child: child),
-            );
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.35),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.primaryLight,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  widget.name,
-                  style: AppTextStyles.bodyMedium(context).copyWith(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FlarePainter extends CustomPainter {
-  _FlarePainter({required this.progress, required this.particles});
-
-  final double progress;
-  final List<_FlareParticle> particles;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final p = progress * 2 * math.pi;
-
-    for (int i = 0; i < particles.length; i++) {
-      final part = particles[i];
-      final pos = Offset(
-        size.width * part.position.dx,
-        size.height * part.position.dy,
-      );
-
-      final baseSize = 110.0 + 40.0 * math.sin(p + i);
-      final opacity = 0.2 + 0.08 * math.cos(p + i * 1.3);
-
-      final paint = Paint()
-        ..shader = RadialGradient(
-          colors: [
-            AppColors.primaryLight.withValues(alpha: opacity),
-            AppColors.primaryLight.withValues(alpha: 0),
-          ],
-        ).createShader(Rect.fromCircle(center: pos, radius: baseSize * 1.2))
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, baseSize * 0.5)
-        ..blendMode = BlendMode.screen;
-
-      canvas.drawCircle(pos, baseSize, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _FlarePainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.particles != particles;
-  }
-}
-
-class _FlareParticle {
-  _FlareParticle({required this.position, required this.velocity});
-
-  Offset position;
-  Offset velocity;
 }

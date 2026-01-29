@@ -4,9 +4,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:simple_icons/simple_icons.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:visibility_detector/visibility_detector.dart';
-import '../constants/colors.dart';
-import '../constants/text_styles.dart';
-import '../constants/portfolio_data.dart';
+import '../../constants/colors.dart';
+import '../../constants/text_styles.dart';
+import '../../constants/portfolio_data.dart';
 
 class ContactSection extends StatefulWidget {
   final Function(VoidCallback)? onRegisterReset;

@@ -1,266 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../constants/colors.dart';
-import '../constants/text_styles.dart';
-import '../constants/portfolio_data.dart';
-import '../models/experience_model.dart';
+import '../../../../constants/colors.dart';
+import '../../../../constants/text_styles.dart';
+import '../../../../models/experience_model.dart';
 
-class ExperienceSection extends StatefulWidget {
-  final Function(VoidCallback)? onRegisterReset;
-  
-  const ExperienceSection({super.key, this.onRegisterReset});
-
-  @override
-  State<ExperienceSection> createState() => _ExperienceSectionState();
-}
-
-class _ExperienceSectionState extends State<ExperienceSection>
-    with WidgetsBindingObserver {
-  final GlobalKey _sectionKey = GlobalKey();
-  bool _sectionAnimated = false;
-  int _experienceResetKey = 0; // Key to force rebuild of experience cards
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    // Check visibility after multiple frames to ensure layout is complete
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 300), () {
-        if (mounted) {
-          _checkSectionVisibility();
-          _startPeriodicVisibilityCheck();
-          // Fallback: if section is already mostly visible, trigger animation
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted && !_sectionAnimated) {
-              _checkSectionVisibility();
-            }
-          });
-        }
-      });
-    });
-    
-    // Register reset callback with parent
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && widget.onRegisterReset != null) {
-        widget.onRegisterReset!(resetAnimations);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  void resetAnimations() {
-    setState(() {
-      _sectionAnimated = false;
-      _experienceResetKey++; // Force rebuild of experience cards
-    });
-    // Restart visibility check after reset
-    _checkSectionVisibility();
-    _startPeriodicVisibilityCheck();
-  }
-
-  void _startPeriodicVisibilityCheck() {
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted && !_sectionAnimated) {
-        _checkSectionVisibility();
-        _startPeriodicVisibilityCheck();
-      }
-    });
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && mounted && !_sectionAnimated) {
-      _checkSectionVisibility();
-    }
-  }
-
-  double _getVisibilityThreshold(bool isMobile) {
-    // For mobile view, trigger animation when 20% visible
-    if (isMobile) {
-      return 0.20;
-    }
-    
-    // For desktop, use dynamic threshold based on experience count
-    final experienceCount = PortfolioData.experiences.length;
-    if (experienceCount >= 5) {
-      return 0.45; // 45% for 5 or more elements
-    } else if (experienceCount == 4) {
-      return 0.60; // 60% for exactly 4 elements
-    } else if (experienceCount >= 3) {
-      return 0.70; // 70% for 3 or more elements
-    } else {
-      return 0.70; // Default to 70% for less than 3 elements
-    }
-  }
-
-  void _checkSectionVisibility() {
-    if (!mounted || _sectionAnimated) return;
-
-    final context = _sectionKey.currentContext;
-    if (context == null || !context.mounted) return;
-
-    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
-    if (renderBox == null || !renderBox.hasSize) return;
-
-    try {
-      final position = renderBox.localToGlobal(Offset.zero);
-      final widgetSize = renderBox.size;
-      final screenSize = MediaQuery.of(context).size;
-      final screenHeight = screenSize.height;
-      final isMobile = screenSize.width < 768;
-
-      final viewportTop = 0.0;
-      final viewportBottom = screenHeight;
-
-      final widgetTop = position.dy;
-      final widgetBottom = widgetTop + widgetSize.height;
-
-      final visibleTop = widgetTop.clamp(viewportTop, viewportBottom);
-      final visibleBottom = widgetBottom.clamp(viewportTop, viewportBottom);
-      final visibleHeight = (visibleBottom - visibleTop).clamp(0.0, widgetSize.height);
-
-      if (widgetSize.height > 0) {
-        final visibilityPercentage = visibleHeight / widgetSize.height;
-        final isInViewport = widgetBottom > viewportTop && widgetTop < viewportBottom;
-        final threshold = _getVisibilityThreshold(isMobile);
-        final shouldBeAnimated = isInViewport && visibilityPercentage >= threshold;
-
-        if (shouldBeAnimated && !_sectionAnimated && mounted) {
-          setState(() {
-            _sectionAnimated = true;
-          });
-        }
-        // Don't reset when section goes out of view - keep the animation state
-        // It will only reset when home section becomes visible
-      }
-    } catch (e) {
-      // Silently handle errors
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isMobile = size.width < 768;
-
-    // Check visibility after build completes
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        Future.delayed(const Duration(milliseconds: 50), () {
-          if (mounted) {
-            _checkSectionVisibility();
-          }
-        });
-      }
-    });
-
-    return NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        if (notification is ScrollUpdateNotification ||
-            notification is ScrollEndNotification ||
-            notification is ScrollStartNotification) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted && !_sectionAnimated) {
-              _checkSectionVisibility();
-            }
-          });
-        }
-        return false;
-      },
-      child: Container(
-        key: _sectionKey,
-        width: double.infinity,
-        constraints: BoxConstraints(
-          minHeight: size.height,
-        ),
-        color: AppColors.backgroundLight,
-        padding: EdgeInsets.symmetric(
-          horizontal: isMobile ? 20 : 60,
-          vertical: isMobile ? 60 : 100,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'EXPERIENCE',
-              style: AppTextStyles.sectionTitle(context),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'My Career Journey',
-              style: AppTextStyles.heading2(context),
-            ),
-            const SizedBox(height: 60),
-            _buildExperiencesList(context, isMobile),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildExperiencesList(BuildContext context, bool isMobile) {
-    final experiences = PortfolioData.experiences
-        .map((exp) => Experience.fromMap(exp))
-        .toList();
-
-    return isMobile
-        ? SizedBox(
-            key: ValueKey(_experienceResetKey), // Force rebuild when reset
-            child: Column(
-              children: experiences
-                  .asMap()
-                  .entries
-                  .map((entry) => Padding(
-                        padding: const EdgeInsets.only(bottom: 18),
-                        child: _ExperienceCard(
-                          key: ValueKey('exp_${_experienceResetKey}_${entry.key}'), // Unique key per reset
-                          experience: entry.value,
-                          isLast: entry.key == experiences.length - 1,
-                          isMobile: true,
-                          index: entry.key,
-                          shouldAnimate: _sectionAnimated,
-                        ),
-                      ))
-                  .toList(),
-            ),
-          )
-        : SizedBox(
-            key: ValueKey(_experienceResetKey), // Force rebuild when reset
-            child: Column(
-              children: experiences
-                  .asMap()
-                  .entries
-                  .map((entry) => Padding(
-                        padding: const EdgeInsets.only(bottom: 24),
-                        child: _ExperienceCard(
-                          key: ValueKey('exp_${_experienceResetKey}_${entry.key}'), // Unique key per reset
-                          experience: entry.value,
-                          isLast: entry.key == experiences.length - 1,
-                          isMobile: false,
-                          index: entry.key,
-                          shouldAnimate: _sectionAnimated,
-                        ),
-                      ))
-                  .toList(),
-            ),
-          );
-  }
-}
-
-class _ExperienceCard extends StatefulWidget {
+class ExperienceCard extends StatefulWidget {
   final Experience experience;
   final bool isLast;
   final bool isMobile;
   final int index;
   final bool shouldAnimate;
 
-  const _ExperienceCard({
+  const ExperienceCard({
     super.key,
     required this.experience,
     required this.isLast,
@@ -270,10 +21,10 @@ class _ExperienceCard extends StatefulWidget {
   });
 
   @override
-  State<_ExperienceCard> createState() => _ExperienceCardState();
+  State<ExperienceCard> createState() => _ExperienceCardState();
 }
 
-class _ExperienceCardState extends State<_ExperienceCard>
+class _ExperienceCardState extends State<ExperienceCard>
     with TickerProviderStateMixin {
   late AnimationController _animationController;
   late AnimationController _stackingController;
@@ -388,7 +139,7 @@ class _ExperienceCardState extends State<_ExperienceCard>
   }
 
   @override
-  void didUpdateWidget(_ExperienceCard oldWidget) {
+  void didUpdateWidget(ExperienceCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     
     if (widget.shouldAnimate && !oldWidget.shouldAnimate) {
